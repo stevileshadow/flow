@@ -1,0 +1,131 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Inter",
+      "role": "body"
+    },
+    {
+      "family": "Caveat",
+      "role": "display"
+    }
+  ],
+  "colors": {
+    "primary": "#714B67",
+    "accent": "#714B67",
+    "background": "#FFFFFF",
+    "textPrimary": "#374151",
+    "link": "#374151"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Inter",
+      "heading": "Caveat"
+    },
+    "fontStacks": {
+      "heading": [
+        "Caveat"
+      ],
+      "body": [
+        "Inter",
+        "Odoo Unicode Support Noto",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Inter",
+        "Odoo Unicode Support Noto",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "88px",
+      "h2": "64px",
+      "body": "24px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 8,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "buttonPrimary": {
+      "background": "#714B67",
+      "textColor": "#FFFFFF",
+      "borderColor": "#714B67",
+      "borderRadius": "4px",
+      "borderRadiusCorners": {
+        "topLeft": "4px",
+        "topRight": "4px",
+        "bottomRight": "4px",
+        "bottomLeft": "4px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#F3F4F6",
+      "textColor": "#714B67",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "File saved at: attached_assets/logo.svg",
+    "favicon": "File saved at: attached_assets/favicon.ico",
+    "ogImage": "File saved at: attached_assets/ogImage.png"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 2,
+    "reasoning": "Selected #2 because it is visible, medium-sized, and matches the brand name 'Odoo'. It is the most prominent logo representing the brand.",
+    "confidence": 0.9,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "Lancez-vous - C'est gratuit !",
+      "reasoning": "Button #0 has vibrant brand color #714B67 and strong CTA text 'Lancez-vous - C'est gratuit !', making it the primary call-to-action."
+    },
+    "secondary": {
+      "index": 5,
+      "text": "Comparez avec SAP",
+      "reasoning": "Button #5 has a different background color #F3F4F6 and provides a comparative action 'Comparez avec SAP', making it suitable as a secondary CTA."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "business professionals"
+  },
+  "designSystem": {
+    "framework": "bootstrap",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 2,
+        "selectedLogoReasoning": "Selected #2 because it is visible, medium-sized, and matches the brand name 'Odoo'. It is the most prominent logo representing the brand.",
+        "confidence": 0.9
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
