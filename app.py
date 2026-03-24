@@ -10,5 +10,13 @@ def index():
 def tarification():
     return render_template("pricing.html")
 
+@app.route("/configurateur/standard")
+def configurateur_standard():
+    return render_template("configurateur.html", plan="standard", plan_label="Standard")
+
+@app.route("/configurateur/personnalise")
+def configurateur_personnalise():
+    return render_template("configurateur.html", plan="custom", plan_label="Personnalisé")
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)

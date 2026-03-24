@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurateur — {{ plan_label }} — Flow ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','sans-serif'], handwriting: ['Caveat','cursive'] },
+          colors: { brand: '#714B67', 'brand-dark': '#5a3a53' }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #fff; }
+    .sticky-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .pill-badge {
+      display: inline-block; background: #f0e8ed; color: #714B67;
+      font-size: 0.72rem; font-weight: 600; padding: 0.2rem 0.6rem;
+      border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .nav-link { font-size: 0.95rem; font-weight: 500; color: #374151; transition: color 0.2s; }
+    .nav-link:hover { color: #714B67; }
+
+    /* Plan title */
+    .plan-color-standard { color: #0ea5e9; }
+    .plan-color-custom    { color: #2dd4bf; }
+
+    /* Radio custom */
+    .radio-option {
+      display: flex; align-items: flex-start; gap: 0.75rem;
+      padding: 0.85rem 1rem;
+      border-radius: 8px;
+      border: 1.5px solid #e5e7eb;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      margin-bottom: 0.5rem;
+    }
+    .radio-option.selected { border-color: #714B67; background: #faf5f8; }
+    .radio-option:hover { border-color: #c4a8ba; }
+    .radio-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid #d1d5db; background: white;
+      flex-shrink: 0; margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color 0.2s;
+    }
+    .radio-option.selected .radio-dot { border-color: #714B67; }
+    .radio-dot-inner {
+      width: 9px; height: 9px; border-radius: 50%; background: #714B67;
+      display: none;
+    }
+    .radio-option.selected .radio-dot-inner { display: block; }
+
+    /* Toggle */
+    .toggle-track {
+      width: 48px; height: 26px; background: #714B67; border-radius: 13px;
+      position: relative; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-thumb {
+      width: 20px; height: 20px; background: white; border-radius: 50%;
+      position: absolute; top: 3px; left: 3px;
+      transition: transform 0.25s cubic-bezier(.4,0,.2,1);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+    }
+    .toggle-thumb.mensuel { transform: translateX(22px); }
+
+    /* Summary panel */
+    .summary-panel {
+      background: white; border: 1.5px solid #e5e7eb;
+      border-radius: 12px; padding: 1.75rem;
+      position: sticky; top: 96px;
+    }
+    .price-row { display: flex; justify-content: space-between; align-items: center; }
+    .discount { color: #22c55e; font-weight: 600; }
+    .total-price { font-size: 1.4rem; font-weight: 700; color: #374151; }
+    .note-text { font-size: 0.78rem; color: #9ca3af; }
+
+    .btn-buy {
+      display: block; width: 100%; text-align: center;
+      background: #714B67; color: white; font-weight: 700;
+      font-size: 0.9rem; letter-spacing: 0.04em;
+      padding: 1rem; border-radius: 6px;
+      transition: background 0.2s; text-transform: uppercase;
+    }
+    .btn-buy:hover { background: #5a3a53; }
+    .btn-quote {
+      display: block; width: 100%; text-align: center;
+      background: #f3f4f6; color: #714B67; font-weight: 600;
+      font-size: 0.85rem; padding: 0.8rem; border-radius: 6px;
+      transition: background 0.2s; margin-top: 0.75rem;
+    }
+    .btn-quote:hover { background: #e9e0ed; }
+
+    /* Number input */
+    .num-input {
+      border: 1.5px solid #d1d5db; border-radius: 6px;
+      padding: 0.5rem 0.75rem; font-size: 1rem;
+      width: 90px; text-align: center;
+      transition: border-color 0.2s;
+    }
+    .num-input:focus { outline: none; border-color: #714B67; }
+
+    /* Hosting sub-options (custom plan) */
+    .hosting-sub {
+      margin-left: 2rem; margin-top: 0.75rem;
+      display: none; flex-direction: column; gap: 0.5rem;
+    }
+    .hosting-sub.visible { display: flex; }
+    .hosting-sub-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.875rem; color: #374151;
+    }
+    .hosting-sub-row label { display: flex; align-items: center; gap: 0.5rem; }
+
+    /* Pack slider */
+    .pack-reveal { display: none; margin-top: 0.75rem; margin-left: 2rem; }
+    .pack-reveal.visible { display: block; }
+
+    /* Separator */
+    .sep { height: 1px; background: #e5e7eb; margin: 1rem 0; }
+
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      font-size: 0.9rem; color: #374151; font-weight: 500;
+      padding: 0.5rem 1rem; border: 1.5px solid #e5e7eb;
+      border-radius: 8px; transition: border-color 0.2s, color 0.2s;
+    }
+    .back-btn:hover { border-color: #714B67; color: #714B67; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-700">
+
+<!-- NAVBAR -->
+<nav class="sticky-nav">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+    <a href="/" class="flex items-center gap-2 shrink-0">
+      <span class="font-handwriting text-3xl font-bold text-brand">Flow</span>
+      <span class="pill-badge">ERP</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8">
+      <a href="/#applications" class="nav-link">Applications</a>
+      <a href="/#industries" class="nav-link">Industries</a>
+      <a href="/#communaute" class="nav-link">Communauté</a>
+      <a href="/tarification" class="nav-link" style="color:#714B67;font-weight:600;">Tarification</a>
+      <a href="/#aide" class="nav-link">Aide</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="#" class="hidden md:block text-sm font-medium text-gray-600 hover:text-brand transition">Se connecter</a>
+      <a href="/tarification" class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2 rounded transition">Essai gratuit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="max-w-5xl mx-auto px-6 py-10">
+
+  <!-- Back + Title -->
+  <div class="flex items-center gap-6 mb-10">
+    <a href="/tarification" class="back-btn">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      Retour
+    </a>
+    <h1 class="text-3xl md:text-4xl font-bold tracking-wide text-gray-900 uppercase">
+      PLAN <span class="{{ 'plan-color-standard' if plan == 'standard' else 'plan-color-custom' }}">{{ plan_label.upper() }}</span>
+    </h1>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+    <!-- LEFT: Options -->
+    <div class="lg:col-span-3 space-y-8">
+
+      <!-- Users -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Nombre d'utilisateurs</h2>
+        <div class="flex items-center gap-3">
+          <button onclick="changeUsers(-1)" class="w-9 h-9 rounded-full border border-gray-300 font-bold text-lg hover:border-brand hover:text-brand transition">−</button>
+          <input type="number" id="user-input" class="num-input" value="1" min="1" max="9999" oninput="setUsers(parseInt(this.value)||1)" />
+          <button onclick="changeUsers(1)" class="w-9 h-9 rounded-full border border-gray-300 font-bold text-lg hover:border-brand hover:text-brand transition">+</button>
+        </div>
+      </div>
+
+      {% if plan == 'custom' %}
+      <!-- HÉBERGEMENT (custom only) -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Type d'hébergement</h2>
+
+        <div class="radio-option selected" id="host-cloud" onclick="selectHosting('cloud')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div>
+            <div class="font-medium text-gray-900">Hébergement cloud standard — <span class="text-green-600">Gratuit</span></div>
+            <div class="text-sm text-gray-500 mt-0.5">Infrastructure Odoo Online partagée, sauvegardes incluses</div>
+          </div>
+        </div>
+
+        <div class="radio-option" id="host-self" onclick="selectHosting('self')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div>
+            <div class="font-medium text-gray-900">Auto-hébergement — <span class="text-green-600">Gratuit</span></div>
+            <div class="text-sm text-gray-500 mt-0.5">Gérez votre propre serveur avec le code source Odoo Enterprise</div>
+          </div>
+        </div>
+
+        <div class="radio-option" id="host-sh" onclick="selectHosting('sh')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div class="w-full">
+            <div class="font-medium text-gray-900">Plateforme Cloud Odoo.sh — <a href="#" class="text-brand underline text-sm">En savoir plus</a></div>
+            <div class="text-sm text-gray-500 mt-0.5">CI/CD, branches staging, développements personnalisés</div>
+          </div>
+        </div>
+
+        <!-- Odoo.sh sub-options -->
+        <div class="hosting-sub" id="sh-options">
+          <div class="hosting-sub-row">
+            <label><span class="text-gray-600 font-medium">Workers</span></label>
+            <div class="flex items-center gap-2">
+              <button onclick="changeSh('workers',-1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">−</button>
+              <span id="sh-workers" class="w-6 text-center font-semibold">1</span>
+              <button onclick="changeSh('workers',1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">+</button>
+              <span class="text-gray-400 text-sm ml-2" id="sh-workers-price">48,00 €/mois</span>
+            </div>
+          </div>
+          <div class="hosting-sub-row">
+            <label><span class="text-gray-600 font-medium">Stockage (Go)</span></label>
+            <div class="flex items-center gap-2">
+              <button onclick="changeSh('storage',-10)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">−</button>
+              <span id="sh-storage" class="w-8 text-center font-semibold">10</span>
+              <button onclick="changeSh('storage',10)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">+</button>
+              <span class="text-gray-400 text-sm ml-2" id="sh-storage-price">2,00 €/mois</span>
+            </div>
+          </div>
+          <div class="hosting-sub-row">
+            <label><span class="text-gray-600 font-medium">Environnements de staging</span></label>
+            <div class="flex items-center gap-2">
+              <button onclick="changeSh('staging',-1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">−</button>
+              <span id="sh-staging" class="w-6 text-center font-semibold">1</span>
+              <button onclick="changeSh('staging',1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">+</button>
+              <span class="text-gray-400 text-sm ml-2" id="sh-staging-price">12,00 €/mois</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- SERVICE DE MISE EN OEUVRE -->
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900 mb-3">Service de mise en œuvre</h2>
+
+        <div class="radio-option selected" id="impl-self" onclick="selectImpl('self')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div>
+            <div class="font-medium text-gray-900">En self-service</div>
+            <div class="text-sm text-gray-500 mt-0.5">Configurez et déployez vous-même avec notre documentation</div>
+          </div>
+        </div>
+
+        <div class="radio-option" id="impl-pack" onclick="selectImpl('pack')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div class="w-full">
+            <div class="font-medium text-gray-900">Success Pack par Flow <span class="text-xs text-gray-400">(recommandé pour <strong>&lt; 50</strong> utilisateurs)</span></div>
+            <div class="text-sm text-gray-500 mt-0.5">Un expert vous accompagne pour la mise en œuvre initiale</div>
+            <!-- Pack config -->
+            <div class="pack-reveal" id="pack-config">
+              <div class="text-sm text-gray-600 mb-2">Nous vous recommandons : <strong><span id="pack-hours">25</span> heures</strong></div>
+              <div class="flex items-center gap-3">
+                <button onclick="changePack(-5)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">−</button>
+                <input type="range" min="10" max="100" step="5" value="25" id="pack-slider" oninput="setPack(this.value)" class="flex-1 accent-brand" />
+                <button onclick="changePack(5)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition">+</button>
+              </div>
+              <div class="text-xs text-gray-400 mt-1">Ces heures expirent après 1 an — à utiliser dès le départ.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="radio-option" id="impl-partner" onclick="selectImpl('partner')">
+          <div class="radio-dot"><div class="radio-dot-inner"></div></div>
+          <div>
+            <div class="font-medium text-gray-900">Avec un partenaire local <span class="text-xs text-gray-400">(recommandé pour <strong>&gt; 50</strong> utilisateurs)</span></div>
+            <div class="text-sm text-gray-500 mt-0.5">Gestion de projet, formations et personnalisations sur mesure</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: Summary panel -->
+    <div class="lg:col-span-2">
+      <div class="summary-panel">
+
+        <!-- Billing toggle -->
+        <div class="flex items-center justify-between mb-5">
+          <span id="lbl-annual" class="text-sm font-semibold text-brand cursor-pointer" onclick="setBilling('annual')">Annuel</span>
+          <div class="toggle-track" onclick="toggleBilling()">
+            <div class="toggle-thumb" id="billing-thumb"></div>
+          </div>
+          <span id="lbl-monthly" class="text-sm font-semibold text-gray-400 cursor-pointer" onclick="setBilling('monthly')">Mensuel</span>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- Price breakdown -->
+        <div class="space-y-2 mb-4">
+          <div class="price-row text-sm text-gray-700">
+            <span><span id="sum-users">1</span> utilisateur(s), <strong>Toutes</strong> les apps</span>
+            <span id="sum-base-price" class="font-semibold"></span>
+          </div>
+          <div class="price-row text-sm" id="discount-row">
+            <span class="text-gray-500 italic">Remise initiale pour la première année</span>
+            <span class="discount" id="sum-discount"></span>
+          </div>
+          {% if plan == 'custom' %}
+          <div class="price-row text-sm text-gray-700" id="sh-cost-row" style="display:none">
+            <span>Odoo.sh (hébergement)</span>
+            <span id="sum-sh-cost" class="font-semibold"></span>
+          </div>
+          {% endif %}
+          <div class="price-row text-sm text-gray-700" id="pack-cost-row" style="display:none">
+            <span>Success Pack (<span id="sum-pack-h">25</span>h)</span>
+            <span id="sum-pack-cost" class="font-semibold"></span>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="price-row mb-1">
+          <span class="font-bold text-gray-900">Total / mois <sup class="text-xs text-gray-400">(*)</sup></span>
+          <span class="total-price" id="sum-total"></span>
+        </div>
+        <div class="note-text mb-5" id="sum-annual-note"></div>
+
+        <a href="#confirmation" class="btn-buy" onclick="submitOrder()">Acheter maintenant</a>
+        <a href="#devis" class="btn-quote" onclick="showQuote()">Envoyer / Imprimer le devis</a>
+
+        <div class="sep"></div>
+        <p class="text-xs text-gray-400 leading-relaxed">
+          (*) Facturé annuellement si plan annuel sélectionné.<br/>
+          La remise s'applique la première année pour les utilisateurs de la commande initiale.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMATION MODAL -->
+<div id="modal-confirm" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 class="text-xl font-bold text-gray-900 mb-2">Demande enregistrée !</h3>
+      <p class="text-gray-500 text-sm" id="modal-summary"></p>
+    </div>
+    <div class="space-y-3">
+      <a href="mailto:contact@flow-erp.com" class="btn-buy block">Contacter notre équipe</a>
+      <button onclick="closeModal()" class="btn-quote w-full">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUOTE MODAL -->
+<div id="modal-quote" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+    <h3 class="text-xl font-bold text-gray-900 mb-4">Envoyer le devis</h3>
+    <div class="space-y-3 mb-6">
+      <input type="text" placeholder="Nom complet" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand" />
+      <input type="email" placeholder="E-mail professionnel" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand" />
+      <input type="text" placeholder="Entreprise" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-brand" />
+    </div>
+    <div id="quote-summary" class="bg-gray-50 rounded-lg p-4 text-sm text-gray-600 mb-5"></div>
+    <div class="flex gap-3">
+      <button onclick="sendQuote()" class="btn-buy flex-1">Envoyer</button>
+      <button onclick="document.getElementById('modal-quote').classList.add('hidden')" class="btn-quote flex-1">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<footer class="bg-gray-900 text-gray-400 py-8 px-6 mt-16">
+  <div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+    <div class="font-handwriting text-2xl font-bold text-white">Flow ERP</div>
+    <p class="text-sm">© 2026 Flow ERP — Stevileshadow. Licence MIT.</p>
+    <a href="/tarification" class="text-sm text-brand hover:underline">← Retour à la tarification</a>
+  </div>
+</footer>
+
+<script>
+const PLAN = "{{ plan }}";
+
+// === PRICING DATA ===
+const BASE = {
+  standard: { annual: 19.90, monthly: 24.90, oldAnnual: 24.90, oldMonthly: 31.10 },
+  custom:   { annual: 29.90, monthly: 37.40, oldAnnual: 37.40, oldMonthly: 49.00 }
+}[PLAN];
+
+const PACK_HOUR_PRICE = 40; // € per hour
+
+let users = 1;
+let billing = 'annual'; // 'annual' | 'monthly'
+let implMode = 'self';  // 'self' | 'pack' | 'partner'
+let packHours = 25;
+let hosting = 'cloud';  // custom plan only: 'cloud' | 'self' | 'sh'
+let sh = { workers: 1, storage: 10, staging: 1 };
+
+// ===========================
+// USER COUNT
+function changeUsers(delta) {
+  users = Math.max(1, users + delta);
+  document.getElementById('user-input').value = users;
+  render();
+}
+function setUsers(v) { users = Math.max(1, v); render(); }
+
+// ===========================
+// BILLING
+function toggleBilling() { setBilling(billing === 'annual' ? 'monthly' : 'annual'); }
+function setBilling(b) {
+  billing = b;
+  const thumb = document.getElementById('billing-thumb');
+  thumb.className = 'toggle-thumb ' + (billing === 'mensuel' || billing === 'monthly' ? 'mensuel' : '');
+  document.getElementById('lbl-annual').className  = 'text-sm font-semibold cursor-pointer ' + (billing==='annual'?'text-brand':'text-gray-400');
+  document.getElementById('lbl-monthly').className = 'text-sm font-semibold cursor-pointer ' + (billing==='monthly'?'text-brand':'text-gray-400');
+  render();
+}
+
+// ===========================
+// IMPL MODE
+function selectImpl(mode) {
+  implMode = mode;
+  ['self','pack','partner'].forEach(m => {
+    document.getElementById('impl-' + m).classList.toggle('selected', m === mode);
+  });
+  const packConfig = document.getElementById('pack-config');
+  if (packConfig) packConfig.classList.toggle('visible', mode === 'pack');
+  const packCostRow = document.getElementById('pack-cost-row');
+  if (packCostRow) packCostRow.style.display = (mode === 'pack') ? 'flex' : 'none';
+  render();
+}
+
+// ===========================
+// PACK
+function changePack(delta) {
+  packHours = Math.min(100, Math.max(10, packHours + delta));
+  const slider = document.getElementById('pack-slider');
+  if (slider) slider.value = packHours;
+  document.getElementById('pack-hours').textContent = packHours;
+  render();
+}
+function setPack(v) {
+  packHours = parseInt(v);
+  document.getElementById('pack-hours').textContent = packHours;
+  render();
+}
+
+// ===========================
+// HOSTING (custom)
+function selectHosting(h) {
+  hosting = h;
+  ['cloud','self','sh'].forEach(m => {
+    const el = document.getElementById('host-' + m);
+    if (el) el.classList.toggle('selected', m === h);
+  });
+  const shOpts = document.getElementById('sh-options');
+  if (shOpts) shOpts.classList.toggle('visible', h === 'sh');
+  const shRow = document.getElementById('sh-cost-row');
+  if (shRow) shRow.style.display = (h === 'sh') ? 'flex' : 'none';
+  render();
+}
+
+function changeSh(key, delta) {
+  if (key === 'workers') sh.workers = Math.max(1, sh.workers + delta);
+  if (key === 'storage') sh.storage = Math.max(10, sh.storage + delta);
+  if (key === 'staging') sh.staging = Math.max(0, sh.staging + delta);
+  document.getElementById('sh-workers').textContent = sh.workers;
+  document.getElementById('sh-storage').textContent = sh.storage;
+  document.getElementById('sh-staging').textContent = sh.staging;
+  updateShPrices();
+  render();
+}
+
+function updateShPrices() {
+  const isAnnual = billing === 'annual';
+  const wPrice = (sh.workers * (isAnnual ? 48 : 60)).toFixed(2).replace('.',',');
+  const sPrice = (sh.storage * (isAnnual ? 0.16 : 0.20)).toFixed(2).replace('.',',');
+  const stPrice = (sh.staging * (isAnnual ? 12 : 15)).toFixed(2).replace('.',',');
+  const wp = document.getElementById('sh-workers-price');
+  const sp = document.getElementById('sh-storage-price');
+  const stp = document.getElementById('sh-staging-price');
+  if (wp) wp.textContent = wPrice + ' €/mois';
+  if (sp) sp.textContent = sPrice + ' €/mois';
+  if (stp) stp.textContent = stPrice + ' €/mois';
+}
+
+// ===========================
+// RENDER
+function render() {
+  const isAnnual = billing === 'annual';
+  const unitPrice = isAnnual ? BASE.annual : BASE.monthly;
+  const oldPrice  = isAnnual ? BASE.oldAnnual : BASE.oldMonthly;
+  const baseTotal = unitPrice * users;
+  const oldTotal  = oldPrice * users;
+  const discount  = -(oldTotal - baseTotal);
+
+  // SH cost
+  let shCost = 0;
+  if (PLAN === 'custom' && hosting === 'sh') {
+    const wRate  = isAnnual ? 48 : 60;
+    const sRate  = isAnnual ? 0.16 : 0.20;
+    const stRate = isAnnual ? 12 : 15;
+    shCost = sh.workers * wRate + sh.storage * sRate + sh.staging * stRate;
+  }
+
+  // Pack cost (one-time amortized over 12 months)
+  const packCostMonthly = implMode === 'pack' ? (packHours * PACK_HOUR_PRICE / 12) : 0;
+
+  const totalMonthly = baseTotal + shCost + packCostMonthly;
+  const totalAnnual  = totalMonthly * 12;
+
+  const fmt = v => v.toFixed(2).replace('.', ',') + ' €';
+
+  document.getElementById('sum-users').textContent = users;
+  document.getElementById('sum-base-price').textContent = fmt(oldTotal);
+  document.getElementById('sum-discount').textContent = '−' + fmt(Math.abs(discount));
+  document.getElementById('sum-total').textContent = fmt(totalMonthly);
+  document.getElementById('sum-annual-note').textContent = isAnnual
+    ? '(*) Facturé annuellement : ' + fmt(totalAnnual)
+    : '(*) Facturé mensuellement';
+
+  const discountRow = document.getElementById('discount-row');
+  if (discountRow) discountRow.style.display = discount !== 0 ? 'flex' : 'none';
+
+  if (PLAN === 'custom' && document.getElementById('sh-cost-row')) {
+    document.getElementById('sum-sh-cost').textContent = fmt(shCost);
+    updateShPrices();
+  }
+
+  if (implMode === 'pack') {
+    document.getElementById('sum-pack-h').textContent = packHours;
+    document.getElementById('sum-pack-cost').textContent = fmt(packCostMonthly) + '/mois';
+  }
+}
+
+// ===========================
+// ACTIONS
+function submitOrder() {
+  const isAnnual = billing === 'annual';
+  const unitPrice = isAnnual ? BASE.annual : BASE.monthly;
+  const total = (unitPrice * users).toFixed(2).replace('.', ',');
+  document.getElementById('modal-summary').textContent =
+    `Plan ${PLAN === 'standard' ? 'Standard' : 'Personnalisé'} — ${users} utilisateur(s) — ${total} €/mois (${billing === 'annual' ? 'annuel' : 'mensuel'}). Notre équipe vous contactera sous 24h.`;
+  document.getElementById('modal-confirm').classList.remove('hidden');
+}
+
+function showQuote() {
+  const isAnnual = billing === 'annual';
+  const unitPrice = isAnnual ? BASE.annual : BASE.monthly;
+  const total = (unitPrice * users).toFixed(2).replace('.', ',');
+  document.getElementById('quote-summary').innerHTML =
+    `<strong>Plan ${PLAN === 'standard' ? 'Standard' : 'Personnalisé'}</strong><br/>
+     ${users} utilisateur(s) × ${unitPrice.toFixed(2).replace('.', ',')} €/mois = <strong>${total} €/mois</strong><br/>
+     Facturation : ${billing === 'annual' ? 'annuelle' : 'mensuelle'}`;
+  document.getElementById('modal-quote').classList.remove('hidden');
+}
+
+function closeModal() { document.getElementById('modal-confirm').classList.add('hidden'); }
+
+function sendQuote() {
+  document.getElementById('modal-quote').classList.add('hidden');
+  alert('Devis envoyé ! Notre équipe vous contactera dans les plus brefs délais.');
+}
+
+// Close modals on backdrop click
+['modal-confirm','modal-quote'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) this.classList.add('hidden');
+  });
+});
+
+// Init
+render();
+</script>
+</body>
+</html>
