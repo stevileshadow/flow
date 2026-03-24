@@ -1,0 +1,145 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Inter",
+      "role": "body"
+    },
+    {
+      "family": "Caveat",
+      "role": "unknown"
+    }
+  ],
+  "colors": {
+    "primary": "#714B67",
+    "accent": "#714B67",
+    "background": "#FFFFFF",
+    "textPrimary": "#374151",
+    "link": "#374151"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Inter",
+      "heading": "Inter"
+    },
+    "fontStacks": {
+      "heading": [
+        "Caveat"
+      ],
+      "body": [
+        "Inter",
+        "Odoo Unicode Support Noto",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Inter",
+        "Odoo Unicode Support Noto",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "88px",
+      "h2": "76px",
+      "body": "16px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 8,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "input": {
+      "background": "#F9FAFB",
+      "textColor": "#111827",
+      "borderColor": "#D8DADD",
+      "borderRadius": "32px",
+      "borderRadiusCorners": {
+        "topLeft": "32px",
+        "topRight": "32px",
+        "bottomRight": "32px",
+        "bottomLeft": "32px"
+      },
+      "shadow": "none"
+    },
+    "buttonPrimary": {
+      "background": "#714B67",
+      "textColor": "#FFFFFF",
+      "borderColor": "#714B67",
+      "borderRadius": "4px",
+      "borderRadiusCorners": {
+        "topLeft": "4px",
+        "topRight": "4px",
+        "bottomRight": "4px",
+        "bottomLeft": "4px"
+      },
+      "shadow": "none"
+    },
+    "buttonSecondary": {
+      "background": "#F3F4F6",
+      "textColor": "#714B67",
+      "borderColor": "#EAE4E8",
+      "borderRadius": "4px",
+      "borderRadiusCorners": {
+        "topLeft": "4px",
+        "topRight": "4px",
+        "bottomRight": "4px",
+        "bottomLeft": "4px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "favicon": "File saved at: attached_assets/favicon.ico",
+    "ogImage": "File saved at: attached_assets/ogImage.png"
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": -1,
+    "reasoning": "No valid brand logo was visible in the header. Candidate #2 matches the brand but is not in the header area.",
+    "confidence": 0.3,
+    "rejected": true,
+    "source": "llm"
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": 0,
+      "text": "DÉMARRER MAINTENANT",
+      "reasoning": "Button #0 'DÉMARRER MAINTENANT' uses the brand color #714B67, which is vibrant and action-oriented, making it the primary CTA."
+    },
+    "secondary": {
+      "index": 2,
+      "text": "ESSAI GRATUIT",
+      "reasoning": "Button #2 'ESSAI GRATUIT' has a different background color (#F3F4F6) and serves as a secondary action with a less vibrant appearance."
+    },
+    "confidence": 0.95
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "businesses looking for ERP solutions"
+  },
+  "designSystem": {
+    "framework": "bootstrap",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0.95,
+    "colors": 0.9,
+    "overall": 0.925
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": -1,
+        "selectedLogoReasoning": "No valid brand logo was visible in the header. Candidate #2 matches the brand but is not in the header area.",
+        "confidence": 0.3
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": true,
+      "llmSucceeded": true
+    }
+  }
+}
