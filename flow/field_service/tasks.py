@@ -60,6 +60,25 @@ def flag_overdue_orders():
 		frappe.db.commit()
 
 
+def update_sla_statuses():
+	"""Recalcule les statuts SLA pour toutes les interventions actives (scheduler horaire)."""
+	active_orders = frappe.get_all(
+		"Field Service Order",
+		filters={
+			"status": ["not in", ["Terminé", "Facturé", "Annulé"]],
+			"sla_resolution_due": ["is", "set"],
+		},
+		fields=["name"],
+	)
+	for o in active_orders:
+		doc = frappe.get_doc("Field Service Order", o.name)
+		doc.update_sla_status()
+		doc.db_set("sla_response_status", doc.sla_response_status, update_modified=False)
+		doc.db_set("sla_resolution_status", doc.sla_resolution_status, update_modified=False)
+	if active_orders:
+		frappe.db.commit()
+
+
 def notify_technician_on_assignment(doc, method=None):
 	"""Notifie le technicien lors de la soumission de l'ordre."""
 	if not doc.assigned_to:

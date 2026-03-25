@@ -1,0 +1,184 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="container my-4" style="max-width: 860px;">
+
+  {# Fil d'Ariane #}
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="/my/interventions">Mes interventions</a></li>
+      <li class="breadcrumb-item active">{{ order.name }}</li>
+    </ol>
+  </nav>
+
+  {# En-tête #}
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h3 class="mb-1">{{ order.title }}</h3>
+      <span class="text-muted small">{{ order.name }}</span>
+    </div>
+    <div class="text-end">
+      {% set priority_colors = {"Faible":"secondary","Normal":"info","Urgent":"warning","Très urgent":"danger"} %}
+      <span class="badge bg-{{ priority_colors.get(order.priority, 'secondary') }} me-1">
+        {{ order.priority or "Normal" }}
+      </span>
+      {% set status_colors = {
+        "Nouveau":"secondary","Planifié":"primary","En cours":"warning text-dark",
+        "En attente de pièces":"warning text-dark","Terminé":"success","Facturé":"purple","Annulé":"danger"
+      } %}
+      <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }}">
+        {{ order.status }}
+      </span>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    {# Colonne gauche #}
+    <div class="col-md-7">
+
+      {# Description #}
+      {% if order.description %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Description</h6>
+          <div class="text-muted">{{ order.description }}</div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# SLA #}
+      {% if order.sla_resolution_due %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Engagements de service</h6>
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="small text-muted">Prise en charge</div>
+              <div class="fw-bold {% if order.sla_response_status == 'Dépassé' %}text-danger{% elif order.sla_response_status == 'Respecté' %}text-success{% endif %}">
+                {{ frappe.format(order.sla_response_due, "Datetime") if order.sla_response_due else "—" }}
+              </div>
+              {% if order.sla_response_status != "En attente" %}
+              <span class="badge bg-{{ 'success' if order.sla_response_status == 'Respecté' else 'danger' }}">
+                {{ order.sla_response_status }}
+              </span>
+              {% endif %}
+            </div>
+            <div class="col-6">
+              <div class="small text-muted">Résolution</div>
+              <div class="fw-bold {% if order.sla_resolution_status == 'Dépassé' %}text-danger{% elif order.sla_resolution_status == 'Respecté' %}text-success{% endif %}">
+                {{ frappe.format(order.sla_resolution_due, "Datetime") }}
+              </div>
+              {% if order.sla_resolution_status != "En attente" %}
+              <span class="badge bg-{{ 'success' if order.sla_resolution_status == 'Respecté' else 'danger' }}">
+                {{ order.sla_resolution_status }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Rapport + Signature #}
+      {% if order.status in ("Terminé", "Facturé") %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Clôture d'intervention</h6>
+          {% if order.customer_feedback %}
+          <p class="text-muted small mb-2">
+            <em>"{{ order.customer_feedback }}"</em>
+          </p>
+          {% endif %}
+          {% if order.customer_signature %}
+          <p class="small text-success">✔ Rapport signé</p>
+          {% endif %}
+          <a href="/printview?doctype=Field+Service+Order&name={{ order.name }}&format=Field+Service+Report"
+             class="btn btn-success btn-sm" target="_blank">
+            📄 Télécharger le rapport PDF
+          </a>
+          {% if order.invoice %}
+          <a href="/my/invoices/{{ order.invoice }}" class="btn btn-outline-primary btn-sm ms-2">
+            🧾 Voir la facture
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# Colonne droite #}
+    <div class="col-md-5">
+
+      {# Infos planification #}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Planification</h6>
+          <ul class="list-unstyled small mb-0">
+            {% if order.scheduled_date %}
+            <li class="mb-1">📅 <strong>Date prévue :</strong>
+              {{ frappe.format(order.scheduled_date, "Date") }}
+              {% if order.scheduled_time %} à {{ order.scheduled_time[:5] }}{% endif %}
+            </li>
+            {% endif %}
+            {% if order.scheduled_duration %}
+            <li class="mb-1">⏱ <strong>Durée prévue :</strong> {{ order.scheduled_duration }} h</li>
+            {% endif %}
+            {% if order.actual_start %}
+            <li class="mb-1">▶ <strong>Démarré le :</strong>
+              {{ frappe.format(order.actual_start, "Datetime") }}</li>
+            {% endif %}
+            {% if order.actual_end %}
+            <li class="mb-1">✅ <strong>Terminé le :</strong>
+              {{ frappe.format(order.actual_end, "Datetime") }}</li>
+            {% endif %}
+            {% if order.actual_duration %}
+            <li>⏱ <strong>Durée réelle :</strong> {{ order.actual_duration }} h</li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      {# Technicien #}
+      {% if order.assigned_to_name %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Technicien</h6>
+          <p class="mb-0"><strong>{{ order.assigned_to_name }}</strong></p>
+          {% if order.fsm_team %}
+          <p class="small text-muted mb-0">{{ order.fsm_team }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {# Lieu + Maps #}
+      {% if order.fsm_location or order.address_display %}
+      <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+          <h6 class="card-title">Lieu d'intervention</h6>
+          {% if order.fsm_location %}
+          <p class="mb-1 small"><strong>{{ order.fsm_location }}</strong></p>
+          {% endif %}
+          {% if order.address_display %}
+          <p class="small text-muted mb-2">{{ order.address_display | striptags }}</p>
+          {% endif %}
+          {% if maps_url %}
+          <a href="{{ maps_url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+            🗺 Voir sur Google Maps
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <div class="mt-3">
+    <a href="/my/interventions" class="btn btn-light">← Retour à la liste</a>
+  </div>
+
+</div>
+{% endblock %}

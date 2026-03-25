@@ -18,6 +18,8 @@ class FieldServiceOrder(Document):
 		self.prefill_from_equipment()
 		self.prefill_from_location()
 		self.sync_stage_and_status()
+		self.apply_sla()
+		self.update_sla_status()
 		self.set_actual_duration()
 		self.calculate_parts_total()
 		self.calculate_timesheet_total()
@@ -320,6 +322,51 @@ class FieldServiceOrder(Document):
 # ------------------------------------------------------------------ #
 #  API publique                                                        #
 # ------------------------------------------------------------------ #
+
+	def apply_sla(self):
+		"""Calcule et assigne les deadlines SLA si pas encore définis."""
+		if self.sla_response_due and self.sla_resolution_due:
+			return  # Déjà calculé
+		from flow.field_service.doctype.fsm_sla_policy.fsm_sla_policy import get_applicable_policy
+		policy = get_applicable_policy(
+			fsm_team=self.fsm_team,
+			activity_type=self.activity_type,
+			company=self.company,
+		)
+		if not policy:
+			return
+		deadlines = policy.get_deadlines_for_priority(self.priority or "Normal")
+		self.sla_policy = policy.name
+		self.sla_response_due = deadlines.get("response_due")
+		self.sla_resolution_due = deadlines.get("resolution_due")
+
+	def update_sla_status(self):
+		"""Met à jour les indicateurs de respect du SLA."""
+		from frappe.utils import now_datetime, get_datetime
+		now = now_datetime()
+		closed_statuses = {"Terminé", "Facturé", "Annulé"}
+
+		# Statut prise en charge : Respecté si l'intervention a démarré avant sla_response_due
+		if self.sla_response_due:
+			if self.actual_start:
+				actual = get_datetime(self.actual_start)
+				due = get_datetime(self.sla_response_due)
+				self.sla_response_status = "Respecté" if actual <= due else "Dépassé"
+			elif self.status not in closed_statuses and now > get_datetime(self.sla_response_due):
+				self.sla_response_status = "Dépassé"
+
+		# Statut résolution : Respecté si terminé avant sla_resolution_due
+		if self.sla_resolution_due:
+			if self.status in {"Terminé", "Facturé"}:
+				end = get_datetime(self.actual_end) if self.actual_end else now
+				due = get_datetime(self.sla_resolution_due)
+				self.sla_resolution_status = "Respecté" if end <= due else "Dépassé"
+			elif self.status not in closed_statuses and now > get_datetime(self.sla_resolution_due):
+				self.sla_resolution_status = "Dépassé"
+
+	# ------------------------------------------------------------------ #
+	#  Actions métier                                                      #
+	# ------------------------------------------------------------------ #
 
 def _get_closed_stage_names():
 	"""Retourne les noms des stages marqués is_closed=1."""

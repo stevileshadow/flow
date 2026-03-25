@@ -11,6 +11,23 @@ app_license = "mit"
 # Frappe détecte automatiquement le dossier www de chaque app installée
 
 # ------------------------------------------------------------------ #
+#  Portail client                                                      #
+# ------------------------------------------------------------------ #
+
+portal_menu_items = [
+	{
+		"title": "Mes interventions",
+		"route": "/my/interventions",
+		"reference_doctype": "Field Service Order",
+		"role": "Customer",
+	}
+]
+
+website_route_rules = [
+	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
+]
+
+# ------------------------------------------------------------------ #
 #  Rôles                                                              #
 # ------------------------------------------------------------------ #
 
@@ -19,7 +36,7 @@ has_permission = {
 }
 
 # ------------------------------------------------------------------ #
-#  Scheduler — rappels automatiques                                   #
+#  Scheduler — rappels + vérification SLA                             #
 # ------------------------------------------------------------------ #
 
 scheduler_events = {
@@ -28,9 +45,10 @@ scheduler_events = {
 		"0 7 * * *": [
 			"flow.field_service.tasks.send_daily_reminders",
 		],
-		# Chaque heure : détection des interventions en retard
+		# Chaque heure : détection des retards + mise à jour statuts SLA
 		"0 * * * *": [
 			"flow.field_service.tasks.flag_overdue_orders",
+			"flow.field_service.tasks.update_sla_statuses",
 		],
 	}
 }

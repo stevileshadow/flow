@@ -39,6 +39,14 @@
   "address_display",
   "directions",
   "territory",
+  "section_sla",
+  "sla_policy",
+  "sla_response_due",
+  "sla_resolution_due",
+  "column_break_sla",
+  "sla_response_status",
+  "sla_resolution_status",
+  "sla_paused_since",
   "section_schedule",
   "actual_start",
   "actual_end",
@@ -279,6 +287,63 @@
    "fieldtype": "Link",
    "label": "Zone",
    "options": "Territory"
+  },
+  {
+   "fieldname": "section_sla",
+   "fieldtype": "Section Break",
+   "label": "SLA — Engagements de service",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "sla_policy",
+   "fieldtype": "Link",
+   "label": "Politique SLA",
+   "options": "FSM SLA Policy",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sla_response_due",
+   "fieldtype": "Datetime",
+   "label": "Prise en charge avant",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sla_resolution_due",
+   "fieldtype": "Datetime",
+   "label": "R\u00e9solution avant",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_sla",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "En attente",
+   "fieldname": "sla_response_status",
+   "fieldtype": "Select",
+   "label": "Statut prise en charge",
+   "options": "En attente\nRespect\u00e9\nD\u00e9pass\u00e9",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "En attente",
+   "fieldname": "sla_resolution_status",
+   "fieldtype": "Select",
+   "label": "Statut r\u00e9solution",
+   "options": "En attente\nRespect\u00e9\nD\u00e9pass\u00e9",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "sla_paused_since",
+   "fieldtype": "Datetime",
+   "label": "SLA suspendu depuis",
+   "hidden": 1,
+   "no_copy": 1,
+   "read_only": 1
   },
   {
    "fieldname": "section_schedule",

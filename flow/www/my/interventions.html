@@ -1,0 +1,142 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="container my-4">
+
+  {% if no_customer %}
+  <div class="alert alert-warning">
+    <strong>Aucun compte client associé à votre profil.</strong>
+    Contactez notre équipe pour lier votre compte.
+  </div>
+  {% else %}
+
+  {# ── En-tête ── #}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Mes interventions</h2>
+    <a href="/my/interventions/new" class="btn btn-primary">
+      + Nouvelle demande
+    </a>
+  </div>
+
+  {# ── Filtres statut ── #}
+  <div class="mb-3 d-flex flex-wrap gap-2">
+    {% set all_filters = [
+      ("all",                "Toutes",              status_counts.get("all", 0)),
+      ("Planifié",           "Planifiées",           status_counts.get("Planifié", 0)),
+      ("En cours",           "En cours",             status_counts.get("En cours", 0)),
+      ("En attente de pièces","En attente de pièces",status_counts.get("En attente de pièces", 0)),
+      ("Terminé",            "Terminées",            status_counts.get("Terminé", 0)),
+      ("Facturé",            "Facturées",            status_counts.get("Facturé", 0)),
+    ] %}
+    {% for val, label, count in all_filters %}
+    {% if count > 0 or val == "all" %}
+    <a href="?status={{ val if val != 'all' else '' }}"
+       class="btn btn-sm {{ 'btn-primary' if active_filter == val else 'btn-outline-secondary' }}">
+      {{ label }} <span class="badge bg-light text-dark ms-1">{{ count }}</span>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  {# ── Liste des interventions ── #}
+  {% if orders %}
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    {% for order in orders %}
+    <div class="col">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+
+          {# Titre + priorité #}
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title mb-0">
+              <a href="/my/interventions/{{ order.name }}" class="text-decoration-none text-dark">
+                {{ order.title }}
+              </a>
+            </h6>
+            {% set priority_colors = {
+              "Faible": "secondary", "Normal": "info",
+              "Urgent": "warning", "Très urgent": "danger"
+            } %}
+            <span class="badge bg-{{ priority_colors.get(order.priority, 'secondary') }}">
+              {{ order.priority or "Normal" }}
+            </span>
+          </div>
+
+          {# Statut #}
+          {% set status_colors = {
+            "Nouveau": "secondary", "Planifié": "primary",
+            "En cours": "warning text-dark", "En attente de pièces": "warning text-dark",
+            "Terminé": "success", "Facturé": "purple", "Annulé": "danger"
+          } %}
+          <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }} mb-2">
+            {{ order.status }}
+          </span>
+
+          {# Infos clés #}
+          <ul class="list-unstyled small text-muted mb-2">
+            {% if order.scheduled_date %}
+            <li>📅 {{ frappe.format(order.scheduled_date, "Date") }}
+              {% if order.scheduled_time %} à {{ order.scheduled_time[:5] }}{% endif %}
+            </li>
+            {% endif %}
+            {% if order.assigned_to_name %}
+            <li>👤 {{ order.assigned_to_name }}</li>
+            {% endif %}
+            {% if order.activity_type %}
+            <li>🔧 {{ order.activity_type }}</li>
+            {% endif %}
+            {% if order.fsm_location %}
+            <li>📍 {{ order.fsm_location }}</li>
+            {% endif %}
+          </ul>
+
+          {# SLA #}
+          {% if order.sla_resolution_due and order.status not in ("Terminé", "Facturé", "Annulé") %}
+          <div class="small {% if order.sla_resolution_status == 'Dépassé' %}text-danger{% else %}text-muted{% endif %}">
+            ⏱ Résolution attendue avant :
+            <strong>{{ frappe.format(order.sla_resolution_due, "Datetime") }}</strong>
+            {% if order.sla_resolution_status == "Dépassé" %}
+            <span class="badge bg-danger ms-1">Dépassé</span>
+            {% endif %}
+          </div>
+          {% endif %}
+
+          {# Signature / Rapport #}
+          {% if order.status in ("Terminé", "Facturé") %}
+          <div class="mt-2">
+            <a href="/printview?doctype=Field+Service+Order&name={{ order.name }}&format=Field+Service+Report"
+               class="btn btn-sm btn-outline-success" target="_blank">
+              📄 Rapport d'intervention
+            </a>
+            {% if order.invoice %}
+            <a href="/my/invoices/{{ order.invoice }}"
+               class="btn btn-sm btn-outline-primary ms-1">
+              🧾 Facture
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+
+        </div>
+        <div class="card-footer bg-transparent border-0 text-end">
+          <a href="/my/interventions/{{ order.name }}" class="btn btn-sm btn-light">
+            Détails →
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <p class="fs-5">Aucune intervention trouvée.</p>
+    <a href="/my/interventions/new" class="btn btn-primary mt-2">
+      Créer une demande de service
+    </a>
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

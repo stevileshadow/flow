@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "autoname": "field:policy_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "policy_name",
+  "active",
+  "is_default",
+  "column_break_1",
+  "fsm_team",
+  "activity_type",
+  "company",
+  "section_desc",
+  "description",
+  "section_priorities",
+  "priorities",
+  "section_options",
+  "pause_on_hold",
+  "consider_working_hours",
+  "working_hours_start",
+  "working_hours_end",
+  "working_days"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "policy_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom de la politique SLA",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Actif"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Politique par d\u00e9faut"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fsm_team",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "\u00c9quipe concern\u00e9e",
+   "options": "FSM Team",
+   "description": "Laisser vide pour appliquer \u00e0 toutes les \u00e9quipes"
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Type d'intervention",
+   "options": "Field Service Activity Type",
+   "description": "Laisser vide pour tous les types"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "section_desc",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_priorities",
+   "fieldtype": "Section Break",
+   "label": "D\u00e9lais par priorit\u00e9"
+  },
+  {
+   "fieldname": "priorities",
+   "fieldtype": "Table",
+   "label": "Priorit\u00e9s",
+   "options": "FSM SLA Priority Line",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_options",
+   "fieldtype": "Section Break",
+   "label": "Options de calcul",
+   "collapsible": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "pause_on_hold",
+   "fieldtype": "Check",
+   "label": "Suspendre le SLA si statut 'En attente de pi\u00e8ces'"
+  },
+  {
+   "default": "0",
+   "fieldname": "consider_working_hours",
+   "fieldtype": "Check",
+   "label": "Calculer uniquement sur les heures ouvrables"
+  },
+  {
+   "depends_on": "consider_working_hours",
+   "fieldname": "working_hours_start",
+   "fieldtype": "Time",
+   "label": "Heure de d\u00e9but",
+   "default": "08:00:00"
+  },
+  {
+   "depends_on": "consider_working_hours",
+   "fieldname": "working_hours_end",
+   "fieldtype": "Time",
+   "label": "Heure de fin",
+   "default": "18:00:00"
+  },
+  {
+   "depends_on": "consider_working_hours",
+   "fieldname": "working_days",
+   "fieldtype": "Select",
+   "label": "Jours ouvrables",
+   "options": "Lun-Ven\nLun-Sam\nLun-Dim (24/7)",
+   "default": "Lun-Ven"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM SLA Policy",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1, "delete": 1, "email": 1, "print": 1,
+   "read": 1, "report": 1, "role": "Field Service Manager",
+   "share": 1, "write": 1
+  },
+  {"read": 1, "role": "Field Service User"}
+ ],
+ "sort_field": "policy_name",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}
