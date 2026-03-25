@@ -7,4 +7,5 @@ app_color = "blue"
 app_email = "ton-courriel@exemple.com"
 app_license = "mit"
 
-# C'est ici que Flow viendra s'insérer dans ERPNext
+# Pages web servies depuis flow/www/
+# Frappe détecte automatiquement le dossier www de chaque app installée

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow — Tout votre business sur une plateforme.</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            handwriting: ['Caveat', 'cursive'],
+          },
+          colors: {
+            brand: '#714B67',
+            'brand-dark': '#5a3a53',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .hero-title { font-family: 'Caveat', cursive; }
+    .highlight-yellow {
+      background: linear-gradient(120deg, #f5c842 0%, #f5c842 100%);
+      background-repeat: no-repeat;
+      background-size: 100% 55%;
+      background-position: 0 85%;
+      padding: 0 4px;
+    }
+    .highlight-blue {
+      text-decoration: underline;
+      text-decoration-color: #3b82f6;
+      text-decoration-thickness: 3px;
+      text-underline-offset: 6px;
+    }
+    .nav-link {
+      position: relative;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #374151;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: #714B67; }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 0;
+      width: 0;
+      height: 2px;
+      background: #714B67;
+      transition: width 0.25s;
+    }
+    .nav-link:hover::after { width: 100%; }
+
+    .app-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 1rem 0.75rem;
+      border-radius: 12px;
+      border: 1.5px solid transparent;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+    }
+    .app-card:hover {
+      border-color: #714B67;
+      box-shadow: 0 4px 16px rgba(113,75,103,0.12);
+      transform: translateY(-2px);
+    }
+    .app-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: #f9f9f9;
+      border: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    }
+    .app-icon img { width: 48px; height: 48px; object-fit: contain; }
+    .app-name { font-size: 0.8rem; font-weight: 500; color: #374151; text-align: center; }
+
+    .hero-bg {
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, #f3e8f0 0%, transparent 70%),
+                  #ffffff;
+    }
+    .wave-bg {
+      background: linear-gradient(180deg, #ffffff 0%, #f3f4f6 40%, #f3f4f6 100%);
+    }
+    .section-dark { background: #1a1a2e; }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.12);
+      min-width: 200px;
+      padding: 0.5rem 0;
+      z-index: 100;
+    }
+    .has-dropdown:hover .dropdown-menu { display: block; }
+    .dropdown-item {
+      display: block;
+      padding: 0.6rem 1.25rem;
+      color: #374151;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .dropdown-item:hover { background: #f5f3f7; color: #714B67; }
+
+    .testimonial-card {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.08);
+    }
+    .counter { font-family: 'Caveat', cursive; font-size: 3.5rem; font-weight: 700; color: #714B67; }
+
+    .feature-card {
+      background: white;
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .feature-card:hover {
+      box-shadow: 0 6px 30px rgba(113,75,103,0.15);
+      transform: translateY(-3px);
+    }
+
+    .event-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: 0.5rem 1.25rem;
+      font-size: 0.875rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadein { animation: fadeInUp 0.7s ease forwards; }
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+
+    .arrow-doodle {
+      display: inline-block;
+      font-size: 1.3rem;
+      color: #374151;
+      transform: rotate(15deg);
+    }
+
+    /* Sticky nav */
+    .sticky-nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .pill-badge {
+      display: inline-block;
+      background: #f0e8ed;
+      color: #714B67;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body class="text-gray-700">
+
+<!-- ===== NAVBAR ===== -->
+<nav class="sticky-nav">
+  <div class="max-w-7xl mx-auto px-6 flex items-center justify-between h-16">
+    <!-- Logo -->
+    <a href="/" class="flex items-center gap-2 shrink-0">
+      <span class="font-handwriting text-3xl font-bold text-brand">Flow</span>
+      <span class="pill-badge">ERP</span>
+    </a>
+
+    <!-- Links -->
+    <div class="hidden md:flex items-center gap-8">
+      <div class="relative has-dropdown">
+        <a href="#applications" class="nav-link flex items-center gap-1">
+          Applications
+          <svg class="w-3.5 h-3.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </a>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item">Comptabilité</a>
+          <a href="#" class="dropdown-item">CRM</a>
+          <a href="#" class="dropdown-item">Gestion de flotte</a>
+          <a href="#" class="dropdown-item">Signalisation</a>
+          <a href="#" class="dropdown-item">Ressources humaines</a>
+          <a href="#" class="dropdown-item">Voir toutes les apps →</a>
+        </div>
+      </div>
+      <div class="relative has-dropdown">
+        <a href="#industries" class="nav-link flex items-center gap-1">
+          Industries
+          <svg class="w-3.5 h-3.5 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+        </a>
+        <div class="dropdown-menu">
+          <a href="#" class="dropdown-item">Transport & Logistique</a>
+          <a href="#" class="dropdown-item">Collectivités</a>
+          <a href="#" class="dropdown-item">BTP & Infrastructure</a>
+          <a href="#" class="dropdown-item">Santé</a>
+        </div>
+      </div>
+      <a href="#communaute" class="nav-link">Communauté</a>
+      <a href="/tarification" class="nav-link">Tarification</a>
+      <a href="#aide" class="nav-link">Aide</a>
+    </div>
+
+    <!-- CTA -->
+    <div class="flex items-center gap-3">
+      <a href="#" class="hidden md:block text-sm font-medium text-gray-600 hover:text-brand transition">Se connecter</a>
+      <a href="#essai" class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2 rounded transition">
+        Essai gratuit
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero-bg pt-20 pb-8 px-6 text-center overflow-hidden" id="hero">
+  <div class="max-w-4xl mx-auto animate-fadein">
+    <h1 class="hero-title text-6xl md:text-8xl font-bold leading-tight text-gray-900 mb-4">
+      Tout votre business sur <span class="highlight-yellow">une plateforme.</span>
+    </h1>
+    <h2 class="hero-title text-4xl md:text-6xl font-semibold text-gray-800 mb-8">
+      Simple, efficace, et <span class="highlight-blue">abordable&nbsp;!</span>
+    </h2>
+
+    <!-- Price annotation -->
+    <div class="relative inline-block mb-10">
+      <div class="flex flex-col md:flex-row items-center justify-center gap-4">
+        <a href="#essai" class="bg-brand hover:bg-brand-dark text-white font-semibold px-8 py-3.5 rounded text-base transition shadow-lg shadow-brand/30">
+          Lancez-vous — C'est gratuit
+        </a>
+        <div class="relative has-dropdown inline-block">
+          <a href="#conseiller" class="border border-gray-300 hover:border-brand text-gray-700 hover:text-brand font-semibold px-8 py-3.5 rounded text-base transition">
+            Rencontrer un conseiller
+          </a>
+          <div class="dropdown-menu text-left" style="min-width:260px">
+            <a href="#" class="dropdown-item">Micro entreprise (&lt; 5 employés)</a>
+            <a href="#" class="dropdown-item">Petite entreprise (6 à 50 employés)</a>
+            <a href="#" class="dropdown-item">Moyenne entreprise (51 à 250 employés)</a>
+            <a href="#" class="dropdown-item">Grande entreprise (&gt;250 employés)</a>
+          </div>
+        </div>
+      </div>
+      <!-- Price doodle -->
+      <div class="absolute -right-4 md:right-[-120px] top-0 text-left hidden md:block">
+        <div class="font-handwriting text-gray-800 text-xl leading-snug">
+          <span class="arrow-doodle">↙</span><br/>
+          19,90 € / mois<br/>
+          pour <strong>TOUTES les apps</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Event banner -->
+    <div class="flex justify-center mb-16">
+      <div class="event-banner">
+        <img src="https://flagcdn.com/20x15/fr.png" alt="France" class="w-5 h-auto" />
+        <span class="text-gray-700 font-medium">Formation Facturation — Aix-en-Provence</span>
+        <span class="text-gray-400">avr. 2, 2026</span>
+        <a href="#" class="text-brand font-semibold hover:underline">Inscrivez-vous →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave separator -->
+  <div class="relative -mx-6">
+    <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0 60 Q360 0 720 30 Q1080 60 1440 20 L1440 60 Z" fill="#f3f4f6"/>
+    </svg>
+  </div>
+</section>
+
+<!-- ===== APP GRID ===== -->
+<section class="wave-bg py-16 px-6" id="applications">
+  <div class="max-w-5xl mx-auto">
+    <div id="app-grid" class="grid grid-cols-4 sm:grid-cols-6 gap-3">
+      <!-- Injected by JS -->
+    </div>
+    <div class="text-center mt-10">
+      <a href="#" class="inline-flex items-center gap-2 text-brand font-semibold hover:underline text-sm">
+        Voir toutes les apps
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== HELL WITHOUT / VALUE PROP ===== -->
+<section class="bg-white py-20 px-6" id="valeur">
+  <div class="max-w-6xl mx-auto text-center">
+    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      Imaginez une vaste collection d'applications<br class="hidden md:block"/> professionnelles à votre disposition.
+    </h2>
+    <p class="text-gray-500 text-lg max-w-2xl mx-auto mb-14">
+      Vous avez quelque chose à améliorer ? Il existe une app pour ça.<br/>
+      Aucune complexité, aucun frais, une simple installation en un clic.
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div class="feature-card text-left">
+        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Optimisé pour la productivité</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Réduction des saisies, IA intégrée et interface ultra-clean. Toutes les opérations en moins de 90 ms — plus vite qu'un clignement d'œil.</p>
+      </div>
+      <div class="feature-card text-left">
+        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">IA native dans toute l'entreprise</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Automatisez vos tâches, adaptez les fonctionnalités, menez des analyses approfondies et développez-vous sans limites.</p>
+      </div>
+      <div class="feature-card text-left">
+        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/></svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Open Source</h3>
+        <p class="text-gray-500 text-sm leading-relaxed">Une communauté de plus de 100 000 développeurs. Pas de lock-in, vos données en PostgreSQL, hébergement au choix.</p>
+      </div>
+    </div>
+
+    <!-- Quote -->
+    <div class="mt-16 relative max-w-2xl mx-auto bg-amber-50 rounded-2xl p-8">
+      <div class="text-5xl text-amber-300 font-serif leading-none mb-2">"</div>
+      <p class="font-handwriting text-2xl text-gray-800 italic leading-snug mb-4">
+        Si vous simplifiez tout, vous pouvez tout accomplir !
+      </p>
+      <p class="text-sm text-gray-500">— Bill McDermott, ancien CEO de SAP</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===== OPEN SOURCE SECTION ===== -->
+<section class="bg-gray-50 py-20 px-6" id="opensource">
+  <div class="max-w-6xl mx-auto">
+    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 text-center mb-14">
+      Un logiciel d'entreprise<br/>conçu pour faire la différence.
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">Open Source</h4>
+        <p class="text-gray-500 text-sm leading-relaxed">Community : 100% gratuit. Enterprise : applications extra, infrastructure et services pro.</p>
+        <a href="#" class="mt-3 inline-block text-brand text-sm font-semibold hover:underline">Comparer les éditions →</a>
+      </div>
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">Open Source + AI ❤️</h4>
+        <p class="text-gray-500 text-sm leading-relaxed">Développez ou créez facilement des modules sur mesure. Les LLM sont déjà entraînés sur notre code.</p>
+      </div>
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">+40 000 apps communautaires</h4>
+        <p class="text-gray-500 text-sm leading-relaxed">Le plus grand magasin d'applications professionnelles au monde. Une application pour chaque besoin.</p>
+        <a href="#" class="mt-3 inline-block text-brand text-sm font-semibold hover:underline">Nos apps communautaires →</a>
+      </div>
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">Pas de baratin d'entreprise</h4>
+        <p class="text-gray-500 text-sm leading-relaxed italic">"Avec Flow, vous obtenez plus que ce à quoi vous vous attendiez. Vous allez transformer le marché."</p>
+      </div>
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">Pas de Lock-in</h4>
+        <p class="text-gray-500 text-sm leading-relaxed">Simplement PostgreSQL : vos données vous appartiennent. Code source disponible, hébergement flexible.</p>
+        <a href="#" class="mt-3 inline-block text-brand text-sm font-semibold hover:underline">Suivez-nous sur GitHub →</a>
+      </div>
+      <div class="feature-card">
+        <h4 class="font-bold text-gray-900 text-lg mb-2">Un prix équitable</h4>
+        <p class="text-gray-500 text-sm leading-relaxed">Un prix unique par utilisateur — tout compris. Pas de tarification à l'usage, pas de surprises.</p>
+        <a href="#tarification" class="mt-3 inline-block text-brand text-sm font-semibold hover:underline">Voir nos tarifs →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== COUNTERS ===== -->
+<section class="bg-brand py-16 px-6 text-white text-center" id="communaute">
+  <div class="max-w-4xl mx-auto">
+    <p class="text-white/70 text-sm uppercase tracking-widest mb-2">Rejoignez</p>
+    <div class="counter text-white">15 millions</div>
+    <p class="text-xl font-semibold mb-8">d'utilisateurs qui développent leur activité</p>
+    <div class="grid grid-cols-3 gap-8 max-w-lg mx-auto">
+      <div>
+        <div class="font-handwriting text-4xl font-bold">100k+</div>
+        <div class="text-white/70 text-sm mt-1">Développeurs</div>
+      </div>
+      <div>
+        <div class="font-handwriting text-4xl font-bold">40k+</div>
+        <div class="text-white/70 text-sm mt-1">Apps dispo</div>
+      </div>
+      <div>
+        <div class="font-handwriting text-4xl font-bold">150+</div>
+        <div class="text-white/70 text-sm mt-1">Pays</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== TESTIMONIAL ===== -->
+<section class="bg-white py-20 px-6">
+  <div class="max-w-3xl mx-auto">
+    <div class="testimonial-card">
+      <svg class="w-8 h-8 text-brand/40 mb-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+      <p class="text-xl text-gray-800 leading-relaxed mb-6 italic">
+        "Le temps de traitement des documents comptables a été notablement réduit, dans certains cas même de 2 jours à seulement 5 heures. Par conséquent, nous pouvons nous concentrer sur ce qui compte : le rapportage et les conseils aux clients."
+      </p>
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 bg-brand/10 rounded-full flex items-center justify-center text-brand font-bold text-lg">HV</div>
+        <div>
+          <div class="font-semibold text-gray-900">Harry Van Donink</div>
+          <div class="text-sm text-gray-500">CEO de KPMG Belgium</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FINAL CTA ===== -->
+<section class="bg-gray-50 py-20 px-6 text-center" id="essai">
+  <div class="max-w-2xl mx-auto">
+    <h2 class="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+      Libérez votre potentiel de croissance
+    </h2>
+    <p class="text-gray-500 mb-10">Aucune carte de crédit requise • Accès instantané</p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+      <a href="#" class="bg-brand hover:bg-brand-dark text-white font-bold px-10 py-4 rounded text-lg transition shadow-xl shadow-brand/30">
+        Lancez-vous — C'est gratuit !
+      </a>
+      <a href="#" class="text-brand font-semibold hover:underline text-base flex items-center gap-2">
+        En savoir plus
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer class="bg-gray-900 text-gray-400 py-14 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+      <div>
+        <div class="font-handwriting text-2xl font-bold text-white mb-3">Flow</div>
+        <p class="text-sm leading-relaxed">Gestion de flotte et mandats de signalisation. Propulsé par Frappe.</p>
+      </div>
+      <div>
+        <h5 class="text-white font-semibold mb-3 text-sm">Applications</h5>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#" class="hover:text-white transition">Gestion de flotte</a></li>
+          <li><a href="#" class="hover:text-white transition">Signalisation</a></li>
+          <li><a href="#" class="hover:text-white transition">Comptabilité</a></li>
+          <li><a href="#" class="hover:text-white transition">CRM</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5 class="text-white font-semibold mb-3 text-sm">Ressources</h5>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#" class="hover:text-white transition">Documentation</a></li>
+          <li><a href="#" class="hover:text-white transition">Communauté</a></li>
+          <li><a href="#" class="hover:text-white transition">GitHub</a></li>
+          <li><a href="#" class="hover:text-white transition">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h5 class="text-white font-semibold mb-3 text-sm">Entreprise</h5>
+        <ul class="space-y-2 text-sm">
+          <li><a href="#" class="hover:text-white transition">À propos</a></li>
+          <li><a href="#" class="hover:text-white transition">Tarification</a></li>
+          <li><a href="#" class="hover:text-white transition">Contact</a></li>
+          <li><a href="#" class="hover:text-white transition">Mentions légales</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-gray-800 pt-6 flex flex-col md:flex-row items-center justify-between gap-3">
+      <p class="text-sm">© 2026 Flow ERP — Stevileshadow. Licence MIT.</p>
+      <p class="text-sm">Propulsé par <span class="text-white font-semibold">Frappe Framework</span></p>
+    </div>
+  </div>
+</footer>
+
+<script>
+const APPS = [
+  { name: 'Comptabilité', icon: 'https://download.odoocdn.com/icons/accountant/static/description/icon.svg', href: '#' },
+  { name: 'Connaissances', icon: 'https://download.odoocdn.com/icons/knowledge/static/description/icon.svg', href: '#' },
+  { name: 'Signature', icon: 'https://download.odoocdn.com/icons/sign/static/description/icon.svg', href: '#' },
+  { name: 'CRM', icon: 'https://download.odoocdn.com/icons/crm/static/description/icon.svg', href: '#' },
+  { name: 'Studio', icon: 'https://download.odoocdn.com/icons/web_studio/static/description/icon.svg', href: '#' },
+  { name: 'Abonnements', icon: 'https://download.odoocdn.com/icons/sale_subscription/static/description/icon.svg', href: '#' },
+  { name: 'IA', icon: 'https://download.odoocdn.com/icons/mail_bot/static/description/icon.svg', href: '#' },
+  { name: 'Point de Vente', icon: 'https://download.odoocdn.com/icons/point_of_sale/static/description/icon.svg', href: '#' },
+  { name: 'Discussion', icon: 'https://download.odoocdn.com/icons/mail/static/description/icon.svg', href: '#' },
+  { name: 'Documents', icon: 'https://download.odoocdn.com/icons/documents/static/description/icon.svg', href: '#' },
+  { name: 'Projet', icon: 'https://download.odoocdn.com/icons/project/static/description/icon.svg', href: '#' },
+  { name: 'Feuilles de temps', icon: 'https://download.odoocdn.com/icons/hr_timesheet/static/description/icon.svg', href: '#' },
+  { name: 'Services sur Site', icon: 'https://download.odoocdn.com/icons/industry_fsm/static/description/icon.svg', href: '#' },
+  { name: 'Planification', icon: 'https://download.odoocdn.com/icons/planning/static/description/icon.svg', href: '#' },
+  { name: 'Assistance', icon: 'https://download.odoocdn.com/icons/helpdesk/static/description/icon.svg', href: '#' },
+  { name: 'Site Web', icon: 'https://download.odoocdn.com/icons/website/static/description/icon.svg', href: '#' },
+  { name: 'Social Marketing', icon: 'https://download.odoocdn.com/icons/social/static/description/icon.svg', href: '#' },
+  { name: 'E-mail Marketing', icon: 'https://download.odoocdn.com/icons/mass_mailing/static/description/icon.svg', href: '#' },
+  { name: 'Inventaire', icon: 'https://download.odoocdn.com/icons/stock/static/description/icon.svg', href: '#' },
+  { name: 'Achats', icon: 'https://download.odoocdn.com/icons/purchase/static/description/icon.svg', href: '#' },
+  { name: 'Ventes', icon: 'https://download.odoocdn.com/icons/sale_management/static/description/icon.svg', href: '#' },
+  { name: 'Fabrication', icon: 'https://download.odoocdn.com/icons/mrp/static/description/icon.svg', href: '#' },
+  { name: 'Employés', icon: 'https://download.odoocdn.com/icons/hr/static/description/icon.svg', href: '#' },
+  { name: 'Recrutement', icon: 'https://download.odoocdn.com/icons/hr_recruitment/static/description/icon.svg', href: '#' },
+];
+
+const grid = document.getElementById('app-grid');
+APPS.forEach(app => {
+  const el = document.createElement('a');
+  el.href = app.href;
+  el.className = 'app-card';
+  el.innerHTML = `
+    <div class="app-icon">
+      <img src="${app.icon}" alt="${app.name}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 48 48%22><rect width=%2248%22 height=%2248%22 rx=%2210%22 fill=%22%23f3f4f6%22/><text x=%2224%22 y=%2232%22 text-anchor=%22middle%22 font-size=%2220%22>📦</text></svg>'" />
+    </div>
+    <span class="app-name">${app.name}</span>
+  `;
+  grid.appendChild(el);
+});
+
+// Intersection Observer for fade-in animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('animate-fadein');
+      observer.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.feature-card, .testimonial-card').forEach(el => {
+  el.style.opacity = '0';
+  observer.observe(el);
+});
+document.querySelectorAll('.animate-fadein').forEach(el => {
+  el.style.opacity = '1';
+});
+</script>
+</body>
+</html>
