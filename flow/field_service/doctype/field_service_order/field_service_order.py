@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours
+from frappe.utils import add_to_date, date_diff, flt, get_datetime, getdate, now_datetime, time_diff_in_hours, today
 
 
 class FieldServiceOrder(Document):
@@ -54,6 +54,9 @@ class FieldServiceOrder(Document):
 				"item_name": part.item_name,
 				"qty": part.qty,
 				"uom": part.uom,
+				"part_type": getattr(part, "part_type", "Consommée") or "Consommée",
+				"rental_rate": getattr(part, "rental_rate", None),
+				"rental_unit": getattr(part, "rental_unit", None) or "Jour",
 			})
 
 	def prefill_from_equipment(self):
@@ -122,12 +125,18 @@ class FieldServiceOrder(Document):
 			)
 
 	def calculate_parts_total(self):
-		"""Calcule le montant de chaque ligne pièce et le total."""
-		total = 0.0
+		"""Calcule le montant de chaque ligne pièce (consommée ou location) et les totaux."""
+		total_consumed = 0.0
+		total_rental = 0.0
 		for row in self.parts:
-			row.amount = flt(row.qty) * flt(row.rate)
-			total += row.amount
-		self.total_parts_amount = total
+			if getattr(row, "part_type", "Consommée") == "En location":
+				row.amount = _rental_amount(row)
+				total_rental += row.amount
+			else:
+				row.amount = flt(row.qty) * flt(row.rate)
+				total_consumed += row.amount
+		self.total_parts_amount = total_consumed
+		self.total_rental_amount = total_rental
 
 	def calculate_timesheet_total(self):
 		"""Calcule heures et montant facturable sur chaque ligne timesheet."""
@@ -152,7 +161,11 @@ class FieldServiceOrder(Document):
 			self.total_amount = 0.0
 		else:
 			# Temps et Matériaux / Heures prépayées
-			self.total_amount = flt(self.total_parts_amount) + flt(self.total_timesheet_amount)
+			self.total_amount = (
+				flt(self.total_parts_amount)
+				+ flt(self.total_timesheet_amount)
+				+ flt(self.total_rental_amount)
+			)
 
 	def sync_timesheet_hours(self):
 		"""Met à jour actual_start/end depuis les lignes timesheet si non renseigné."""
@@ -290,10 +303,20 @@ class FieldServiceOrder(Document):
 		if stage:
 			self.fsm_stage = stage
 		self.status = "En cours"
+		# Auto-remplir date_sortie pour les pièces en location sans date encore définie
+		today_date = today()
+		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") == "En location" and not part.date_sortie:
+				part.date_sortie = today_date
 		self.save()
 		# C — Équipement → En maintenance dès le démarrage
 		if self.fsm_equipment:
 			frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "En maintenance")
+		# Stock Entry de sortie pour les pièces en location (si pas déjà créé)
+		if not self.rental_stock_entry:
+			rental_se = self._create_rental_departure_entry()
+			if rental_se:
+				self.db_set("rental_stock_entry", rental_se)
 		frappe.msgprint(_("Intervention démarrée le {0}").format(self.actual_start), alert=True)
 
 	@frappe.whitelist()
@@ -339,8 +362,10 @@ class FieldServiceOrder(Document):
 		invoice.company = self.company
 		invoice.field_service_order = self.name
 
-		# Lignes pièces/produits
+		# Lignes pièces consommées
 		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") == "En location":
+				continue
 			invoice.append("items", {
 				"item_code": part.item_code,
 				"item_name": part.item_name,
@@ -350,6 +375,25 @@ class FieldServiceOrder(Document):
 				"rate": part.rate,
 				"amount": part.amount,
 				"warehouse": part.warehouse,
+			})
+
+		# Lignes pièces en location (tarif × durée)
+		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") != "En location":
+				continue
+			duration = _rental_duration(part)
+			unit_label = getattr(part, "rental_unit", None) or "Jour"
+			date_fin = part.date_retour or today()
+			invoice.append("items", {
+				"item_code": part.item_code,
+				"item_name": _("Location — {0}").format(part.item_name),
+				"description": _("Location du {0} au {1} ({2} {3})").format(
+					part.date_sortie or _("?"), date_fin, duration, unit_label
+				),
+				"qty": duration,
+				"uom": unit_label,
+				"rate": flt(part.rental_rate),
+				"amount": flt(part.amount),
 			})
 
 		# Lignes main-d'œuvre (temps facturables)
@@ -376,8 +420,10 @@ class FieldServiceOrder(Document):
 		invoice.insert(ignore_permissions=True)
 		invoice.submit()
 
-		# Consommation des pièces en stock
+		# Stock Entry — consommation des pièces Consommées
 		se_name = self._create_stock_entry_for_parts()
+		# Stock Entry — sortie des pièces En location (si pas déjà créé au démarrage)
+		rental_se = self.rental_stock_entry or self._create_rental_departure_entry()
 
 		invoiced_stage = frappe.db.get_value(
 			"FSM Stage", {"stage_name": "Facturé", "stage_type": "Ordre"}, "name"
@@ -385,6 +431,8 @@ class FieldServiceOrder(Document):
 		self.db_set("invoice", invoice.name)
 		if se_name:
 			self.db_set("stock_entry", se_name)
+		if rental_se and not self.rental_stock_entry:
+			self.db_set("rental_stock_entry", rental_se)
 		self.db_set("status", "Facturé")
 		if invoiced_stage:
 			self.db_set("fsm_stage", invoiced_stage)
@@ -393,18 +441,25 @@ class FieldServiceOrder(Document):
 			frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
 		)
 		if se_name:
-			msg += "<br>" + _("Écriture de stock {0} générée pour les pièces.").format(
+			msg += "<br>" + _("Sortie stock (consommation) : {0}").format(
 				frappe.utils.get_link_to_form("Stock Entry", se_name)
+			)
+		if rental_se:
+			msg += "<br>" + _("Sortie stock (location) : {0}").format(
+				frappe.utils.get_link_to_form("Stock Entry", rental_se)
 			)
 		frappe.msgprint(msg, title=_("Facturation terminée"))
 		return invoice.name
 
 	def _create_stock_entry_for_parts(self):
-		"""Crée une écriture de stock (Material Issue) pour consommer les pièces utilisées.
-		Seules les lignes avec item_code, warehouse et qty > 0 sont incluses.
-		Retourne le nom du Stock Entry créé, ou None si aucune pièce à consommer.
+		"""Crée un Material Issue pour les pièces Consommées (pas les locations).
+		Retourne le nom du Stock Entry créé, ou None si aucune pièce éligible.
 		"""
-		lines = [p for p in self.parts if p.item_code and p.warehouse and flt(p.qty) > 0]
+		lines = [
+			p for p in self.parts
+			if p.item_code and p.warehouse and flt(p.qty) > 0
+			and getattr(p, "part_type", "Consommée") != "En location"
+		]
 		if not lines:
 			return None
 
@@ -423,6 +478,82 @@ class FieldServiceOrder(Document):
 
 		se.insert(ignore_permissions=True)
 		se.submit()
+		return se.name
+
+	def _create_rental_departure_entry(self):
+		"""Crée un Material Issue pour la sortie des pièces En location avec entrepôt défini.
+		Retourne le nom du Stock Entry, ou None si aucune pièce éligible.
+		"""
+		lines = [
+			p for p in self.parts
+			if getattr(p, "part_type", "Consommée") == "En location"
+			and p.item_code and p.warehouse and flt(p.qty) > 0
+		]
+		if not lines:
+			return None
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Issue"
+		se.company = self.company
+		se.remarks = _("Sortie location — Intervention {0}").format(self.name)
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"s_warehouse": part.warehouse,
+			})
+		se.insert(ignore_permissions=True)
+		se.submit()
+		return se.name
+
+	@frappe.whitelist()
+	def return_rental_parts(self):
+		"""Enregistre le retour des pièces en location : Material Receipt + mise à jour lignes."""
+		if self.return_stock_entry:
+			frappe.throw(
+				_("Les pièces ont déjà été retournées (écriture {0}).").format(self.return_stock_entry)
+			)
+		lines = [
+			p for p in self.parts
+			if getattr(p, "part_type", "Consommée") == "En location"
+			and not p.is_returned
+			and p.item_code and p.warehouse and flt(p.qty) > 0
+		]
+		if not lines:
+			frappe.throw(_("Aucune pièce en location à retourner pour cette intervention."))
+
+		today_date = today()
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Receipt"
+		se.company = self.company
+		se.remarks = _("Retour location — Intervention {0}").format(self.name)
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"t_warehouse": part.warehouse,
+			})
+		se.insert(ignore_permissions=True)
+		se.submit()
+
+		# Mise à jour des lignes et recalcul du montant location
+		for part in lines:
+			part.is_returned = 1
+			if not part.date_retour:
+				part.date_retour = today_date
+
+		self.db_set("return_stock_entry", se.name)
+		self.save()  # déclenche calculate_parts_total → recalcul total_rental_amount avec date_retour
+
+		frappe.msgprint(
+			_("Retour enregistré. Écriture de stock {0} créée.").format(
+				frappe.utils.get_link_to_form("Stock Entry", se.name)
+			),
+			title=_("Retour pièces en location"),
+		)
 		return se.name
 
 	# ------------------------------------------------------------------ #
@@ -510,6 +641,25 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 	#  Actions métier                                                      #
 	# ------------------------------------------------------------------ #
+
+def _rental_duration(row):
+	"""Calcule la durée de location en unités (jours, semaines ou mois)."""
+	if not row.date_sortie:
+		return 1
+	end = getdate(row.date_retour) if row.date_retour else getdate(today())
+	days = max(1, date_diff(end, getdate(row.date_sortie)))
+	unit = getattr(row, "rental_unit", None) or "Jour"
+	if unit == "Semaine":
+		return max(1, -(-days // 7))   # division plafond
+	if unit == "Mois":
+		return max(1, -(-days // 30))
+	return days  # Jour
+
+
+def _rental_amount(row):
+	"""Calcule le montant d'une ligne location = tarif × durée."""
+	return flt(row.rental_rate) * _rental_duration(row)
+
 
 def _get_closed_stage_names():
 	"""Retourne les noms des stages marqués is_closed=1."""

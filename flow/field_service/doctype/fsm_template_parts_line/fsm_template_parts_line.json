@@ -9,7 +9,10 @@
   "item_name",
   "column_break_1",
   "qty",
-  "uom"
+  "uom",
+  "part_type",
+  "rental_rate",
+  "rental_unit"
  ],
  "fields": [
   {
@@ -47,6 +50,29 @@
    "in_list_view": 1,
    "label": "Unit\u00e9",
    "options": "UOM"
+  },
+  {
+   "default": "Consomm\u00e9e",
+   "fieldname": "part_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Consomm\u00e9e\nEn location"
+  },
+  {
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "rental_rate",
+   "fieldtype": "Currency",
+   "label": "Tarif location",
+   "options": "currency"
+  },
+  {
+   "default": "Jour",
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "rental_unit",
+   "fieldtype": "Select",
+   "label": "Unit\u00e9 location",
+   "options": "Jour\nSemaine\nMois"
   }
  ],
  "istable": 1,

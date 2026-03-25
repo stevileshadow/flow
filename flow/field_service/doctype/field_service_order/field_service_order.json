@@ -69,6 +69,9 @@
   "section_invoice",
   "invoice",
   "stock_entry",
+  "rental_stock_entry",
+  "return_stock_entry",
+  "total_rental_amount",
   "total_amount",
   "section_signature",
   "customer_signature",
@@ -485,9 +488,32 @@
   {
    "fieldname": "stock_entry",
    "fieldtype": "Link",
-   "label": "\u00c9criture de stock",
+   "label": "\u00c9criture de stock (consommation)",
    "no_copy": 1,
    "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock (sortie location)",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "return_stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock (retour location)",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_rental_amount",
+   "fieldtype": "Currency",
+   "label": "Total location",
+   "options": "currency",
    "read_only": 1
   },
   {

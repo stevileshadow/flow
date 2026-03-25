@@ -8,6 +8,7 @@
   "item_code",
   "item_name",
   "description",
+  "part_type",
   "column_break_1",
   "qty",
   "uom",
@@ -15,7 +16,14 @@
   "rate",
   "amount",
   "section_break_3",
-  "warehouse"
+  "warehouse",
+  "section_rental",
+  "rental_rate",
+  "rental_unit",
+  "date_sortie",
+  "column_break_rental",
+  "date_retour",
+  "is_returned"
  ],
  "fields": [
   {
@@ -39,6 +47,14 @@
    "fieldname": "description",
    "fieldtype": "Text",
    "label": "Description"
+  },
+  {
+   "default": "Consomm\u00e9e",
+   "fieldname": "part_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type",
+   "options": "Consomm\u00e9e\nEn location"
   },
   {
    "fieldname": "column_break_1",
@@ -79,16 +95,65 @@
    "read_only": 1
   },
   {
+   "collapsible": 1,
    "fieldname": "section_break_3",
    "fieldtype": "Section Break",
-   "collapsible": 1,
    "label": "Stock"
   },
   {
    "fieldname": "warehouse",
    "fieldtype": "Link",
-   "label": "Entrepôt source",
+   "label": "Entrep\u00f4t source",
    "options": "Warehouse"
+  },
+  {
+   "collapsible": 1,
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "section_rental",
+   "fieldtype": "Section Break",
+   "label": "D\u00e9tails location"
+  },
+  {
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "rental_rate",
+   "fieldtype": "Currency",
+   "label": "Tarif de location",
+   "options": "currency"
+  },
+  {
+   "default": "Jour",
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "rental_unit",
+   "fieldtype": "Select",
+   "label": "Unit\u00e9",
+   "options": "Jour\nSemaine\nMois"
+  },
+  {
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "date_sortie",
+   "fieldtype": "Date",
+   "label": "Date de sortie",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_rental",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "date_retour",
+   "fieldtype": "Date",
+   "label": "Date de retour",
+   "no_copy": 1
+  },
+  {
+   "default": "0",
+   "depends_on": "eval: doc.part_type == 'En location'",
+   "fieldname": "is_returned",
+   "fieldtype": "Check",
+   "label": "Retourn\u00e9",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "istable": 1,
