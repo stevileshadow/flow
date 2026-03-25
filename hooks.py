@@ -61,6 +61,7 @@ doc_events = {
 	"Field Service Order": {
 		"on_submit": "flow.field_service.tasks.notify_technician_on_assignment",
 		"on_cancel": "flow.field_service.tasks.notify_cancellation",
+		"on_update": "flow.field_service.tasks.notify_customer_on_status_change",
 	}
 }
 

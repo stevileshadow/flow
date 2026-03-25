@@ -68,6 +68,7 @@
   "total_timesheet_amount",
   "section_invoice",
   "invoice",
+  "stock_entry",
   "total_amount",
   "section_signature",
   "customer_signature",
@@ -477,6 +478,14 @@
    "label": "Facture associ\u00e9e",
    "no_copy": 1,
    "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock",
+   "no_copy": 1,
+   "options": "Stock Entry",
    "read_only": 1
   },
   {

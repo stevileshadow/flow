@@ -266,21 +266,54 @@ class FieldServiceOrder(Document):
 		invoice.insert(ignore_permissions=True)
 		invoice.submit()
 
+		# Consommation des pièces en stock
+		se_name = self._create_stock_entry_for_parts()
+
 		invoiced_stage = frappe.db.get_value(
 			"FSM Stage", {"stage_name": "Facturé", "stage_type": "Ordre"}, "name"
 		)
 		self.db_set("invoice", invoice.name)
+		if se_name:
+			self.db_set("stock_entry", se_name)
 		self.db_set("status", "Facturé")
 		if invoiced_stage:
 			self.db_set("fsm_stage", invoiced_stage)
 
-		frappe.msgprint(
-			_("Facture {0} créée avec succès.").format(
-				frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
-			),
-			title=_("Facture créée"),
+		msg = _("Facture {0} créée avec succès.").format(
+			frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
 		)
+		if se_name:
+			msg += "<br>" + _("Écriture de stock {0} générée pour les pièces.").format(
+				frappe.utils.get_link_to_form("Stock Entry", se_name)
+			)
+		frappe.msgprint(msg, title=_("Facturation terminée"))
 		return invoice.name
+
+	def _create_stock_entry_for_parts(self):
+		"""Crée une écriture de stock (Material Issue) pour consommer les pièces utilisées.
+		Seules les lignes avec item_code, warehouse et qty > 0 sont incluses.
+		Retourne le nom du Stock Entry créé, ou None si aucune pièce à consommer.
+		"""
+		lines = [p for p in self.parts if p.item_code and p.warehouse and flt(p.qty) > 0]
+		if not lines:
+			return None
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Issue"
+		se.company = self.company
+		se.remarks = _("Consommation pièces — Intervention {0}").format(self.name)
+
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"s_warehouse": part.warehouse,
+			})
+
+		se.insert(ignore_permissions=True)
+		se.submit()
+		return se.name
 
 	# ------------------------------------------------------------------ #
 	#  Événements Frappe                                                   #
@@ -297,18 +330,18 @@ class FieldServiceOrder(Document):
 			eq.update_after_service(self.actual_end or today())
 
 	def on_cancel(self):
-		cancelled_stage = frappe.db.get_value(
-			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
-		)
-		self.db_set("status", "Annulé")
-		if cancelled_stage:
-			self.db_set("fsm_stage", cancelled_stage)
 		if self.invoice:
 			frappe.throw(
 				_("Impossible d'annuler : la facture {0} est déjà émise. Annulez d'abord la facture.").format(
 					self.invoice
 				)
 			)
+		cancelled_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
+		)
+		self.db_set("status", "Annulé")
+		if cancelled_stage:
+			self.db_set("fsm_stage", cancelled_stage)
 
 	def before_print(self, settings=None):
 		"""Prépare les données pour le rapport d'intervention PDF."""

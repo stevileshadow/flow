@@ -121,3 +121,53 @@ def notify_cancellation(doc, method=None):
 			"Bonjour {0},\n\nL'intervention {1} ({2}) a été annulée."
 		).format(doc.assigned_to_name, doc.name, doc.title),
 	)
+
+
+def notify_customer_on_status_change(doc, method=None):
+	"""Notifie le client par email à chaque changement de statut de son intervention."""
+	# Détecte l'ancien statut avant sauvegarde
+	old_status = None
+	if getattr(doc, "_doc_before_save", None):
+		old_status = doc._doc_before_save.status
+
+	if old_status == doc.status:
+		return  # Pas de changement
+
+	# Cherche l'email du client : d'abord sur l'ordre, puis sur le Contact
+	customer_email = doc.contact_email or None
+	if not customer_email and doc.contact_person:
+		customer_email = frappe.db.get_value("Contact", doc.contact_person, "email_id")
+	if not customer_email:
+		return
+
+	status_messages = {
+		"Planifié": _("Votre intervention a été planifiée."),
+		"En cours": _("Votre intervention est en cours — le technicien est sur place."),
+		"En attente de pièces": _("Votre intervention est en attente de pièces. Nous vous tiendrons informé."),
+		"Terminé": _("Votre intervention est terminée. Merci de votre confiance."),
+		"Facturé": _("Votre facture a été émise."),
+		"Annulé": _("Votre intervention a été annulée. N'hésitez pas à nous contacter."),
+	}
+
+	message_detail = status_messages.get(doc.status)
+	if not message_detail:
+		return
+
+	frappe.sendmail(
+		recipients=[customer_email],
+		subject=_("Mise à jour de votre intervention — {0}").format(doc.title),
+		message=_(
+			"Bonjour {0},\n\n"
+			"{1}\n\n"
+			"  Référence : {2}\n"
+			"  Nouveau statut : {3}\n"
+			"  Date planifiée : {4}\n\n"
+			"Consultez les détails sur votre espace client."
+		).format(
+			doc.customer_name or _("Client"),
+			message_detail,
+			doc.name,
+			doc.status,
+			doc.scheduled_date or _("À définir"),
+		),
+	)
