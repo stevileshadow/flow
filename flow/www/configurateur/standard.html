@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurateur {{ plan_label }} — Flow ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter','sans-serif'], handwriting: ['Caveat','cursive'] },
+          colors: { brand: '#714B67', 'brand-dark': '#5a3a53' }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #fff; color: #374151; }
+
+    /* NAV */
+    .sticky-nav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .pill-badge {
+      display: inline-block; background: #f0e8ed; color: #714B67;
+      font-size: 0.7rem; font-weight: 600; padding: 0.18rem 0.55rem;
+      border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .nav-link { font-size: 0.9rem; font-weight: 500; color: #374151; transition: color 0.2s; }
+    .nav-link:hover { color: #714B67; }
+    .nav-link.active { color: #714B67; border-bottom: 2px solid #714B67; padding-bottom: 2px; }
+
+    /* BACK BUTTON */
+    .back-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px;
+      border: 1.5px solid #d1d5db; border-radius: 8px;
+      color: #374151; transition: border-color 0.2s, color 0.2s;
+    }
+    .back-btn:hover { border-color: #714B67; color: #714B67; }
+
+    /* PLAN TITLE */
+    .plan-color-standard { color: #0ea5e9; }
+    .plan-color-custom    { color: #2dd4bf; }
+
+    /* USER INPUT */
+    .user-input {
+      border: 1px solid #d1d5db; border-radius: 4px;
+      padding: 0.45rem 0.75rem; font-size: 0.95rem;
+      width: 120px; color: #374151;
+      transition: border-color 0.2s;
+    }
+    .user-input:focus { outline: none; border-color: #714B67; }
+
+    /* RADIO OPTIONS — Odoo style: plain radio + text */
+    .radio-row {
+      display: flex; align-items: flex-start; gap: 0.65rem;
+      padding: 0.35rem 0; cursor: pointer;
+    }
+    .radio-row input[type="radio"] {
+      width: 17px; height: 17px; margin-top: 2px; flex-shrink: 0;
+      accent-color: #714B67; cursor: pointer;
+    }
+    .radio-row label { cursor: pointer; font-size: 0.9rem; line-height: 1.5; }
+    .radio-row label strong { color: #111827; }
+    .radio-row label .sub { font-size: 0.82rem; color: #6b7280; margin-top: 0.15rem; }
+
+    /* Sub-options panel (expands below radio) */
+    .sub-panel {
+      display: none; margin-left: 1.65rem; margin-top: 0.5rem;
+      padding: 0.85rem 1rem; background: #f9fafb;
+      border: 1px solid #e5e7eb; border-radius: 8px;
+      font-size: 0.875rem; color: #374151;
+    }
+    .sub-panel.open { display: block; }
+
+    /* Pack hours slider */
+    input[type="range"] { accent-color: #714B67; width: 100%; }
+    .pack-hours-row { display: flex; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+    .pack-hours-val { font-weight: 700; color: #714B67; min-width: 28px; text-align: center; }
+
+    /* Partner select */
+    .partner-select {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #374151;
+      background: white; margin-top: 0.5rem;
+      transition: border-color 0.2s;
+    }
+    .partner-select:focus { outline: none; border-color: #714B67; }
+
+    /* SECTION TITLE */
+    .section-title { font-size: 1rem; font-weight: 600; color: #111827; margin-bottom: 0.75rem; }
+
+    /* PRICE PANEL */
+    .price-panel {
+      background: white; border: 1.5px solid #e5e7eb;
+      border-radius: 10px; padding: 1.5rem;
+    }
+
+    /* Billing toggle */
+    .toggle-wrap { display: flex; align-items: center; gap: 0.75rem; }
+    .toggle-lbl { font-size: 0.875rem; font-weight: 600; cursor: pointer; }
+    .toggle-lbl.active { color: #714B67; }
+    .toggle-lbl.inactive { color: #9ca3af; }
+    .toggle-track {
+      width: 44px; height: 24px; background: #714B67; border-radius: 12px;
+      position: relative; cursor: pointer; flex-shrink: 0;
+    }
+    .toggle-thumb {
+      width: 18px; height: 18px; background: white; border-radius: 50%;
+      position: absolute; top: 3px; left: 3px;
+      transition: transform 0.22s cubic-bezier(.4,0,.2,1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle-thumb.right { transform: translateX(20px); }
+
+    /* Price breakdown */
+    .price-line { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.875rem; }
+    .price-line .lbl { color: #374151; }
+    .price-line .val { font-weight: 500; color: #374151; }
+    .price-line .discount-val { color: #0ea5e9; font-weight: 600; }
+
+    .sep { height: 1px; background: #e5e7eb; margin: 0.9rem 0; }
+
+    .total-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .total-lbl { font-size: 0.9rem; font-weight: 500; color: #374151; }
+    .total-val { font-size: 1.25rem; font-weight: 700; color: #374151; }
+    .annual-note { font-size: 0.78rem; color: #6b7280; margin-top: 0.25rem; text-align: right; }
+
+    /* CTA buttons */
+    .btn-buy {
+      display: block; width: 100%; text-align: center;
+      background: #714B67; color: white;
+      font-weight: 600; font-size: 0.9rem;
+      padding: 0.85rem; border-radius: 5px;
+      transition: background 0.2s; border: none; cursor: pointer;
+      margin-top: 1.25rem;
+    }
+    .btn-buy:hover { background: #5a3a53; }
+    .btn-quote {
+      display: block; width: 100%; text-align: center;
+      background: transparent; color: #714B67;
+      font-weight: 600; font-size: 0.875rem;
+      padding: 0.75rem; border-radius: 5px;
+      border: 1.5px solid #e5e7eb;
+      transition: border-color 0.2s; cursor: pointer;
+      margin-top: 0.6rem;
+    }
+    .btn-quote:hover { border-color: #714B67; }
+
+    /* note */
+    .price-note { font-size: 0.75rem; color: #9ca3af; margin-top: 0.75rem; line-height: 1.5; }
+
+    /* FOOTER */
+    footer { background: #1a1a2a; color: #6b7280; }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 12px; padding: 2rem;
+      max-width: 440px; width: 100%; margin: 1rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-input {
+      width: 100%; border: 1px solid #d1d5db; border-radius: 6px;
+      padding: 0.6rem 0.9rem; font-size: 0.875rem; color: #374151;
+      margin-bottom: 0.6rem; transition: border-color 0.2s;
+    }
+    .modal-input:focus { outline: none; border-color: #714B67; }
+
+    @media (max-width: 767px) {
+      .layout-grid { flex-direction: column; }
+      .price-panel { position: static; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="sticky-nav">
+  <div class="max-w-6xl mx-auto px-6 flex items-center justify-between h-14">
+    <a href="/" class="flex items-center gap-2">
+      <span class="font-handwriting text-2xl font-bold text-brand">Flow</span>
+      <span class="pill-badge">ERP</span>
+    </a>
+    <div class="hidden md:flex items-center gap-7">
+      <a href="/#applications" class="nav-link">Applications</a>
+      <a href="/#industries" class="nav-link">Industries</a>
+      <a href="/#communaute" class="nav-link">Communauté</a>
+      <a href="/tarification" class="nav-link active">Tarification</a>
+      <a href="/#aide" class="nav-link">Aide</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="#" class="hidden md:block text-sm text-gray-500 hover:text-brand">Se connecter</a>
+      <a href="/tarification" class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-4 py-1.5 rounded transition">Essai gratuit</a>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="max-w-6xl mx-auto px-6 py-10">
+
+  <!-- Header row -->
+  <div class="flex items-center gap-6 mb-10">
+    <a href="/tarification" class="back-btn" title="Retour">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+    </a>
+    <h1 class="text-3xl md:text-4xl font-bold tracking-wider uppercase text-gray-900">
+      PLAN <span class="{{ 'plan-color-standard' if plan == 'standard' else 'plan-color-custom' }}">{{ plan_label.upper() }}</span>
+    </h1>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="flex gap-10 layout-grid">
+
+    <!-- LEFT FORM -->
+    <div class="flex-1 min-w-0 space-y-8">
+
+      <!-- Nombre d'utilisateurs -->
+      <div>
+        <div class="section-title">Nombre d'utilisateurs</div>
+        <input type="number" id="user-input" class="user-input" value="1" min="1" max="9999"
+               oninput="setUsers(parseInt(this.value)||1)" />
+      </div>
+
+      {% if plan == 'custom' %}
+      <!-- TYPE D'HÉBERGEMENT (custom only) -->
+      <div>
+        <div class="section-title">Type d'hébergement</div>
+        <div class="space-y-2">
+
+          <div class="radio-row" onclick="selectHosting('cloud')">
+            <input type="radio" name="hosting" id="host-cloud" checked />
+            <label for="host-cloud">
+              Hébergement cloud standard — <span class="text-green-600 font-medium">Gratuit</span>
+              <div class="sub">Infrastructure partagée, sauvegardes quotidiennes incluses</div>
+            </label>
+          </div>
+
+          <div class="radio-row" onclick="selectHosting('self')">
+            <input type="radio" name="hosting" id="host-self" />
+            <label for="host-self">
+              Auto-hébergement — <span class="text-green-600 font-medium">Gratuit</span>
+              <div class="sub">Gérez votre propre serveur avec le code source Flow Enterprise</div>
+            </label>
+          </div>
+
+          <div class="radio-row" onclick="selectHosting('sh')">
+            <input type="radio" name="hosting" id="host-sh" />
+            <label for="host-sh">
+              Plateforme Cloud Odoo.sh — <a href="https://odoo.sh" target="_blank" class="text-brand underline text-xs">En savoir plus</a>
+              <div class="sub">CI/CD, branches staging, modules personnalisés</div>
+            </label>
+          </div>
+
+          <!-- Odoo.sh sub-options -->
+          <div class="sub-panel" id="sh-panel">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Configuration Odoo.sh</div>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Workers</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="changeSh('workers',-1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">−</button>
+                  <span id="sh-workers" class="w-6 text-center font-semibold">1</span>
+                  <button onclick="changeSh('workers',1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">+</button>
+                  <span class="text-xs text-gray-400 w-24 text-right" id="sh-workers-price">48,00 €/mois</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Stockage (Go)</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="changeSh('storage',-10)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">−</button>
+                  <span id="sh-storage" class="w-8 text-center font-semibold">10</span>
+                  <button onclick="changeSh('storage',10)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">+</button>
+                  <span class="text-xs text-gray-400 w-24 text-right" id="sh-storage-price">1,60 €/mois</span>
+                </div>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="font-medium">Environnements de staging</span>
+                <div class="flex items-center gap-2">
+                  <button onclick="changeSh('staging',-1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">−</button>
+                  <span id="sh-staging" class="w-6 text-center font-semibold">1</span>
+                  <button onclick="changeSh('staging',1)" class="w-7 h-7 rounded-full border border-gray-300 text-sm hover:border-brand transition leading-none">+</button>
+                  <span class="text-xs text-gray-400 w-24 text-right" id="sh-staging-price">12,00 €/mois</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- SERVICE DE MISE EN OEUVRE -->
+      <div>
+        <div class="section-title">Service de mise en œuvre</div>
+        <div class="space-y-2">
+
+          <!-- Self-service -->
+          <div class="radio-row" onclick="selectImpl('self')">
+            <input type="radio" name="impl" id="impl-self" checked />
+            <label for="impl-self">
+              <strong>En self-service</strong>
+            </label>
+          </div>
+
+          <!-- Success Pack -->
+          <div class="radio-row" onclick="selectImpl('pack')">
+            <input type="radio" name="impl" id="impl-pack" />
+            <label for="impl-pack">
+              Success Pack par Flow
+              <span class="text-gray-400 font-normal"> (recommandé pour <strong>&lt; 50</strong> utilisateurs)</span>
+            </label>
+          </div>
+
+          <!-- Success Pack sub-panel -->
+          <div class="sub-panel" id="pack-panel">
+            <p class="text-gray-600 mb-3 leading-relaxed">
+              Avec le Success Pack, vous disposez d'un expert qui vous fournit une assistance personnalisée unique
+              pour vous aider à personnaliser votre solution et optimiser votre flux de travail dans le cadre de
+              votre mise en œuvre initiale. Gardez à l'esprit que ces heures expirent après un an.
+            </p>
+            <p class="mb-3">Nous vous recommandons un pack de : <strong><span id="pack-hours-lbl">25</span> heures</strong>.</p>
+            <div class="pack-hours-row">
+              <span class="text-sm text-gray-500">10h</span>
+              <input type="range" min="10" max="100" step="5" value="25" id="pack-slider"
+                     oninput="setPack(parseInt(this.value))" />
+              <span class="text-sm text-gray-500">100h</span>
+              <span class="pack-hours-val" id="pack-hours-val">25</span>
+              <span class="text-sm text-gray-500">h</span>
+            </div>
+            <div class="mt-3 flex gap-4">
+              <a href="#" class="text-sm text-brand font-semibold hover:underline">Configurer</a>
+              <a href="#" class="text-sm text-brand font-semibold hover:underline">En savoir plus</a>
+            </div>
+          </div>
+
+          <!-- Partenaire local -->
+          <div class="radio-row" onclick="selectImpl('partner')">
+            <input type="radio" name="impl" id="impl-partner" />
+            <label for="impl-partner">
+              Avec un partenaire local
+              <span class="text-gray-400 font-normal"> (recommandé pour <strong>&gt; 50</strong> utilisateurs)</span>
+            </label>
+          </div>
+
+          <!-- Partner sub-panel -->
+          <div class="sub-panel" id="partner-panel">
+            <label class="text-sm font-medium text-gray-700 mb-1 block">Sélectionnez votre partenaire — <a href="#" class="text-brand underline text-xs">Pourquoi ?</a></label>
+            <select class="partner-select" id="partner-select" onchange="render()">
+              <option value="0">Pas de partenaire d'intégration</option>
+              <option value="1">Bista Solutions Inc.</option>
+              <option value="2">Brainvire Infotech Inc.</option>
+              <option value="3">Captivea USA</option>
+              <option value="4">Cudio Inc.</option>
+              <option value="5">Novobi</option>
+              <option value="6">Open Source Integrators</option>
+              <option value="7">QOC Innovations</option>
+              <option value="8">Bay Forward LLC</option>
+              <option value="9">Ciranta IT Services Inc</option>
+              <option value="10">Comstar USA</option>
+              <option value="11">Confianz Global Inc</option>
+              <option value="12">DFW IT Partner LLC</option>
+              <option value="13">One2Many LLC</option>
+              <option value="14">Rooteam</option>
+              <option value="15">S4 Solutions, LLC</option>
+            </select>
+            <p class="text-xs text-gray-400 mt-2">Inclut la maintenance des lignes de code supplémentaires</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end left -->
+
+    <!-- RIGHT PANEL -->
+    <div class="w-80 flex-shrink-0">
+      <div class="price-panel" style="position: sticky; top: 80px;">
+
+        <!-- Billing toggle -->
+        <div class="toggle-wrap mb-4">
+          <span class="toggle-lbl active" id="lbl-annual" onclick="setBilling('annual')">Annuel</span>
+          <div class="toggle-track" onclick="toggleBilling()">
+            <div class="toggle-thumb" id="billing-thumb"></div>
+          </div>
+          <span class="toggle-lbl inactive" id="lbl-monthly" onclick="setBilling('monthly')">Mensuel</span>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- Line items -->
+        <div class="space-y-2 mb-1">
+          <div class="price-line">
+            <span class="lbl"><span id="sum-users">1</span> utilisateur(s), <strong>Toutes</strong> les apps</span>
+            <span class="val" id="sum-base"></span>
+          </div>
+          <div class="price-line" id="row-discount">
+            <span class="lbl text-gray-400 italic">Remise initiale pour la première année</span>
+            <span class="discount-val" id="sum-discount"></span>
+          </div>
+          <div class="price-line" id="row-pack" style="display:none">
+            <span class="lbl">Success Pack (<span id="sum-pack-h">25</span>h)</span>
+            <span class="val" id="sum-pack-cost"></span>
+          </div>
+          <div class="price-line" id="row-sh" style="display:none">
+            <span class="lbl">Odoo.sh</span>
+            <span class="val" id="sum-sh"></span>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- Total -->
+        <div class="total-row">
+          <span class="total-lbl">Total / mois <sup class="text-xs text-gray-400">(*)</sup></span>
+          <span class="total-val" id="sum-total"></span>
+        </div>
+        <div class="annual-note" id="sum-note"></div>
+
+        <!-- Buttons -->
+        <button class="btn-buy" onclick="openBuyModal()">Acheter maintenant</button>
+        <button class="btn-quote" onclick="openQuoteModal()">Envoyer / Imprimer le devis</button>
+
+        <p class="price-note">
+          (*) La remise s'applique pendant 12 mois aux utilisateurs spécifiés dans la commande initiale.
+          {% if plan == 'custom' %}(**) Le coût de l'hébergement Odoo.sh n'est pas inclus dans le forfait.{% endif %}
+        </p>
+      </div>
+    </div><!-- end right -->
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="py-8 px-6 mt-16 text-center">
+  <span class="font-handwriting text-2xl font-bold text-white">Flow ERP</span>
+  <p class="text-sm mt-2 text-gray-500">© 2026 Flow ERP — Stevileshadow · Licence MIT · Propulsé par Frappe Framework</p>
+</footer>
+
+<!-- MODAL: ACHAT -->
+<div class="modal-overlay" id="modal-buy" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <div class="text-center mb-5">
+      <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-7 h-7 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-gray-900 mb-1">Demande enregistrée !</h3>
+      <p class="text-sm text-gray-500" id="buy-summary"></p>
+    </div>
+    <a href="mailto:contact@flow-erp.com" class="btn-buy">Contacter notre équipe</a>
+    <button class="btn-quote" onclick="document.getElementById('modal-buy').classList.remove('open')">Fermer</button>
+  </div>
+</div>
+
+<!-- MODAL: DEVIS -->
+<div class="modal-overlay" id="modal-quote" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <h3 class="text-lg font-bold text-gray-900 mb-4">Envoyer / Imprimer le devis</h3>
+    <input type="text" placeholder="Nom complet *" class="modal-input" />
+    <input type="email" placeholder="E-mail professionnel *" class="modal-input" />
+    <input type="text" placeholder="Société" class="modal-input" />
+    <input type="tel" placeholder="Téléphone" class="modal-input" />
+    <div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 my-3" id="quote-detail"></div>
+    <div class="flex gap-3 mt-2">
+      <button class="btn-buy flex-1" onclick="sendQuote()">Envoyer</button>
+      <button class="btn-quote flex-1" onclick="document.getElementById('modal-quote').classList.remove('open')">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const PLAN = "{{ plan }}";
+const PLAN_LABEL = "{{ plan_label }}";
+
+const RATES = {
+  standard: { annual: 19.90, monthly: 24.90, fullMonthly: 24.90, fullAnnual: 24.90 },
+  custom:   { annual: 29.90, monthly: 37.40, fullMonthly: 37.40, fullAnnual: 37.40 }
+};
+// Annual discount = old price - annual price
+const OLD = {
+  standard: { annual: 24.90, monthly: 31.10 },
+  custom:   { annual: 37.40, monthly: 49.00 }
+};
+const PACK_RATE = 40; // €/heure
+
+let users    = 1;
+let billing  = 'annual';
+let implMode = 'self';
+let packHours = 25;
+let hosting  = 'cloud';
+let sh = { workers: 1, storage: 10, staging: 1 };
+
+// ---- USERS ----
+function setUsers(v) {
+  users = Math.max(1, v || 1);
+  document.getElementById('user-input').value = users;
+  render();
+}
+
+// ---- BILLING ----
+function toggleBilling() { setBilling(billing === 'annual' ? 'monthly' : 'annual'); }
+function setBilling(b) {
+  billing = b;
+  document.getElementById('billing-thumb').className = 'toggle-thumb' + (b === 'monthly' ? ' right' : '');
+  document.getElementById('lbl-annual').className  = 'toggle-lbl ' + (b === 'annual'  ? 'active' : 'inactive');
+  document.getElementById('lbl-monthly').className = 'toggle-lbl ' + (b === 'monthly' ? 'active' : 'inactive');
+  updateShPrices(); render();
+}
+
+// ---- HOSTING (custom) ----
+function selectHosting(h) {
+  hosting = h;
+  document.querySelectorAll('input[name="hosting"]').forEach(r => r.checked = false);
+  const el = document.getElementById('host-' + h);
+  if (el) el.checked = true;
+  const panel = document.getElementById('sh-panel');
+  if (panel) panel.classList.toggle('open', h === 'sh');
+  const rowSh = document.getElementById('row-sh');
+  if (rowSh) rowSh.style.display = (h === 'sh') ? 'flex' : 'none';
+  updateShPrices(); render();
+}
+
+function changeSh(key, delta) {
+  if (key === 'workers') sh.workers = Math.max(1, sh.workers + delta);
+  if (key === 'storage') sh.storage = Math.max(10, sh.storage + delta);
+  if (key === 'staging') sh.staging = Math.max(0, sh.staging + delta);
+  document.getElementById('sh-workers').textContent = sh.workers;
+  document.getElementById('sh-storage').textContent = sh.storage;
+  document.getElementById('sh-staging').textContent = sh.staging;
+  updateShPrices(); render();
+}
+
+function updateShPrices() {
+  const isAnnual = billing === 'annual';
+  const wp = document.getElementById('sh-workers-price');
+  const sp = document.getElementById('sh-storage-price');
+  const stp = document.getElementById('sh-staging-price');
+  if (wp)  wp.textContent  = fmt(sh.workers  * (isAnnual ? 48   : 60))   + '/mois';
+  if (sp)  sp.textContent  = fmt(sh.storage  * (isAnnual ? 0.16 : 0.20)) + '/mois';
+  if (stp) stp.textContent = fmt(sh.staging  * (isAnnual ? 12   : 15))   + '/mois';
+}
+
+// ---- IMPL ----
+function selectImpl(mode) {
+  implMode = mode;
+  document.querySelectorAll('input[name="impl"]').forEach(r => r.checked = false);
+  document.getElementById('impl-' + mode).checked = true;
+  document.getElementById('pack-panel').classList.toggle('open', mode === 'pack');
+  document.getElementById('partner-panel').classList.toggle('open', mode === 'partner');
+  document.getElementById('row-pack').style.display = (mode === 'pack') ? 'flex' : 'none';
+  render();
+}
+
+// ---- PACK ----
+function setPack(v) {
+  packHours = v;
+  document.getElementById('pack-hours-lbl').textContent = v;
+  document.getElementById('pack-hours-val').textContent = v;
+  render();
+}
+
+// ---- FORMAT ----
+function fmt(v) { return v.toFixed(2).replace('.', ',') + ' €'; }
+
+// ---- RENDER ----
+function render() {
+  const isAnnual = billing === 'annual';
+  const rate    = RATES[PLAN][isAnnual ? 'annual' : 'monthly'];
+  const oldRate = OLD[PLAN][isAnnual ? 'annual' : 'monthly'];
+
+  const baseMonthly = rate    * users;
+  const oldMonthly  = oldRate * users;
+  const discount    = isAnnual ? -(oldMonthly - baseMonthly) : 0;
+
+  // Pack: one-time hours amortized over 12 months
+  const packMonthly = implMode === 'pack' ? (packHours * PACK_RATE / 12) : 0;
+
+  // SH
+  let shMonthly = 0;
+  if (PLAN === 'custom' && hosting === 'sh') {
+    const wRate  = isAnnual ? 48    : 60;
+    const sRate  = isAnnual ? 0.16  : 0.20;
+    const stRate = isAnnual ? 12    : 15;
+    shMonthly = sh.workers * wRate + sh.storage * sRate + sh.staging * stRate;
+  }
+
+  const total   = baseMonthly + packMonthly + shMonthly;
+  const annual  = total * 12;
+
+  document.getElementById('sum-users').textContent = users;
+  document.getElementById('sum-base').textContent  = fmt(oldMonthly);
+  document.getElementById('sum-discount').textContent = isAnnual ? '−' + fmt(Math.abs(discount)) : '';
+  document.getElementById('row-discount').style.display = isAnnual ? 'flex' : 'none';
+  document.getElementById('sum-total').textContent = fmt(total);
+  document.getElementById('sum-note').textContent  = isAnnual
+    ? `(*) Facturé annuellement : ${fmt(annual)}`
+    : `(*) Facturé mensuellement`;
+
+  if (document.getElementById('sum-pack-h')) {
+    document.getElementById('sum-pack-h').textContent   = packHours;
+    document.getElementById('sum-pack-cost').textContent = fmt(packMonthly) + '/mois';
+  }
+  if (document.getElementById('sum-sh')) {
+    document.getElementById('sum-sh').textContent = fmt(shMonthly) + '/mois';
+  }
+}
+
+// ---- MODALS ----
+function openBuyModal() {
+  const isAnnual = billing === 'annual';
+  const rate = RATES[PLAN][isAnnual ? 'annual' : 'monthly'];
+  document.getElementById('buy-summary').textContent =
+    `Plan ${PLAN_LABEL} — ${users} utilisateur(s) — ${fmt(rate * users)}/mois (${isAnnual ? 'annuel' : 'mensuel'}). Notre équipe vous contactera sous 24h.`;
+  document.getElementById('modal-buy').classList.add('open');
+}
+
+function openQuoteModal() {
+  const isAnnual = billing === 'annual';
+  const rate = RATES[PLAN][isAnnual ? 'annual' : 'monthly'];
+  document.getElementById('quote-detail').innerHTML =
+    `<strong>Plan ${PLAN_LABEL}</strong> — ${users} utilisateur(s)<br/>` +
+    `${fmt(rate)}/utilisateur/mois × ${users} = <strong>${fmt(rate * users)}/mois</strong><br/>` +
+    `Facturation : ${isAnnual ? 'annuelle' : 'mensuelle'}` +
+    (implMode === 'pack' ? ` · Success Pack ${packHours}h` : '') +
+    (implMode === 'partner' ? ' · Avec partenaire local' : '');
+  document.getElementById('modal-quote').classList.add('open');
+}
+
+function sendQuote() {
+  document.getElementById('modal-quote').classList.remove('open');
+  document.getElementById('modal-buy').querySelector('h3').textContent = 'Devis envoyé !';
+  document.getElementById('buy-summary').textContent = 'Notre équipe vous enverra le devis dans les plus brefs délais.';
+  document.getElementById('modal-buy').classList.add('open');
+}
+
+// Init
+updateShPrices();
+render();
+</script>
+</body>
+</html>
