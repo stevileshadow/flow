@@ -1,0 +1,38 @@
+[
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Réparation",
+  "default_billing_type": "Temps et Matériaux",
+  "description": "Réparation d'équipements défaillants"
+ },
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Installation",
+  "default_billing_type": "Forfait",
+  "description": "Installation et mise en service d'équipements"
+ },
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Maintenance préventive",
+  "default_billing_type": "Forfait",
+  "description": "Entretien périodique planifié"
+ },
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Inspection",
+  "default_billing_type": "Temps et Matériaux",
+  "description": "Diagnostic et contrôle technique"
+ },
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Formation",
+  "default_billing_type": "Heures prépayées",
+  "description": "Formation et accompagnement utilisateurs"
+ },
+ {
+  "doctype": "Field Service Activity Type",
+  "activity_type_name": "Consultation",
+  "default_billing_type": "Heures prépayées",
+  "description": "Conseil et audit sur site"
+ }
+]

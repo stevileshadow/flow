@@ -1,0 +1,76 @@
+{
+ "actions": [],
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "priority",
+  "column_break_1",
+  "response_time_hours",
+  "resolution_time_hours",
+  "column_break_2",
+  "response_time_display",
+  "resolution_time_display"
+ ],
+ "fields": [
+  {
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Priorit\u00e9",
+   "options": "Faible\nNormal\nUrgent\nTr\u00e8s urgent",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_time_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "D\u00e9lai de prise en charge (h)",
+   "precision": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "resolution_time_hours",
+   "fieldtype": "Float",
+   "in_list_view": 1,
+   "label": "D\u00e9lai de r\u00e9solution (h)",
+   "precision": "1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "response_time_display",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Prise en charge affich\u00e9e",
+   "description": "Ex: 4h, 1 jour, 48h",
+   "read_only": 0
+  },
+  {
+   "fieldname": "resolution_time_display",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "R\u00e9solution affich\u00e9e",
+   "description": "Ex: 8h, 3 jours ouvrables"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM SLA Priority Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "priority",
+ "sort_order": "ASC",
+ "states": []
+}

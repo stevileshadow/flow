@@ -1,0 +1,72 @@
+[
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "Nouveau",
+  "sequence": 10,
+  "stage_type": "Ordre",
+  "color": "#6c757d",
+  "is_default": 1,
+  "is_closed": 0,
+  "fold": 0
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "Planifié",
+  "sequence": 20,
+  "stage_type": "Ordre",
+  "color": "#0d6efd",
+  "is_default": 0,
+  "is_closed": 0,
+  "fold": 0
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "En cours",
+  "sequence": 30,
+  "stage_type": "Ordre",
+  "color": "#fd7e14",
+  "is_default": 0,
+  "is_closed": 0,
+  "fold": 0
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "En attente de pièces",
+  "sequence": 40,
+  "stage_type": "Ordre",
+  "color": "#ffc107",
+  "is_default": 0,
+  "is_closed": 0,
+  "fold": 0
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "Terminé",
+  "sequence": 50,
+  "stage_type": "Ordre",
+  "color": "#198754",
+  "is_default": 0,
+  "is_closed": 1,
+  "fold": 0
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "Facturé",
+  "sequence": 60,
+  "stage_type": "Ordre",
+  "color": "#6f42c1",
+  "is_default": 0,
+  "is_closed": 1,
+  "fold": 1
+ },
+ {
+  "doctype": "FSM Stage",
+  "stage_name": "Annulé",
+  "sequence": 70,
+  "stage_type": "Ordre",
+  "color": "#dc3545",
+  "is_default": 0,
+  "is_closed": 1,
+  "fold": 1
+ }
+]

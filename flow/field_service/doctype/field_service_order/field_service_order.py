@@ -1,0 +1,404 @@
+# Copyright (c) 2026, stevileshadow and contributors
+# License: MIT
+
+import frappe
+from frappe import _
+from frappe.model.document import Document
+from frappe.utils import flt, now_datetime, time_diff_in_hours
+
+
+class FieldServiceOrder(Document):
+
+	# ------------------------------------------------------------------ #
+	#  Validation                                                          #
+	# ------------------------------------------------------------------ #
+
+	def validate(self):
+		self.apply_template_on_new()
+		self.prefill_from_equipment()
+		self.prefill_from_location()
+		self.sync_stage_and_status()
+		self.apply_sla()
+		self.update_sla_status()
+		self.set_actual_duration()
+		self.calculate_parts_total()
+		self.calculate_timesheet_total()
+		self.calculate_total_amount()
+		self.sync_timesheet_hours()
+
+	def apply_template_on_new(self):
+		"""Applique le modèle uniquement lors de la création (doc is new)."""
+		if not self.fsm_template or not self.is_new():
+			return
+		tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+		if tpl.activity_type and not self.activity_type:
+			self.activity_type = tpl.activity_type
+		if tpl.billing_type and not self.billing_type:
+			self.billing_type = tpl.billing_type
+		if tpl.fsm_team and not self.fsm_team:
+			self.fsm_team = tpl.fsm_team
+		if tpl.priority and not self.priority:
+			self.priority = tpl.priority
+		if tpl.scheduled_duration and not self.scheduled_duration:
+			self.scheduled_duration = tpl.scheduled_duration
+		if tpl.description and not self.description:
+			self.description = tpl.description
+		if tpl.instructions and not self.internal_notes:
+			self.internal_notes = tpl.instructions
+		for part in tpl.default_parts:
+			self.append("parts", {
+				"item_code": part.item_code,
+				"item_name": part.item_name,
+				"qty": part.qty,
+				"uom": part.uom,
+			})
+
+	def prefill_from_equipment(self):
+		"""Auto-remplit lieu et client depuis l'équipement sélectionné."""
+		if not self.fsm_equipment:
+			return
+		eq = frappe.get_cached_doc("FSM Equipment", self.fsm_equipment)
+		if eq.fsm_location and not self.fsm_location:
+			self.fsm_location = eq.fsm_location
+		if eq.customer and not self.customer:
+			self.customer = eq.customer
+			self.customer_name = eq.customer_name
+
+	def prefill_from_location(self):
+		"""Auto-remplit client, contact, adresse et équipe depuis FSM Location."""
+		if not self.fsm_location:
+			return
+		# Ne pas écraser les champs déjà renseignés manuellement
+		loc = frappe.get_cached_doc("FSM Location", self.fsm_location)
+		if not self.customer and loc.customer:
+			self.customer = loc.customer
+			self.customer_name = loc.customer_name
+		if not self.contact_person and loc.contact_person:
+			self.contact_person = loc.contact_person
+		if not self.customer_address and loc.address:
+			self.customer_address = loc.address
+		if not self.fsm_team and loc.fsm_team:
+			self.fsm_team = loc.fsm_team
+		if not self.assigned_to and loc.assigned_workers:
+			primary = next((w.employee for w in loc.assigned_workers if w.is_primary), None)
+			if primary:
+				self.assigned_to = primary
+		if not self.directions and loc.directions:
+			self.directions = loc.directions
+
+	def sync_stage_and_status(self):
+		"""Synchronise fsm_stage ↔ status bidirectionnellement.
+		- Si fsm_stage change → met à jour status
+		- Si status change sans fsm_stage → cherche l'étape correspondante
+		"""
+		if self.fsm_stage:
+			stage = frappe.get_cached_doc("FSM Stage", self.fsm_stage)
+			# Synchronise le champ status lisible depuis le stage
+			self.status = stage.stage_name
+		elif self.status:
+			# Cherche l'étape dont le nom correspond au status
+			stage_name = frappe.db.get_value(
+				"FSM Stage", {"stage_name": self.status, "stage_type": "Ordre"}, "name"
+			)
+			if stage_name:
+				self.fsm_stage = stage_name
+		else:
+			# Cherche l'étape par défaut
+			default = frappe.db.get_value(
+				"FSM Stage", {"stage_type": "Ordre", "is_default": 1}, "name"
+			)
+			if default:
+				self.fsm_stage = default
+				self.status = default
+
+	def set_actual_duration(self):
+		"""Calcule la durée réelle entre actual_start et actual_end."""
+		if self.actual_start and self.actual_end:
+			self.actual_duration = flt(
+				time_diff_in_hours(self.actual_end, self.actual_start), 2
+			)
+
+	def calculate_parts_total(self):
+		"""Calcule le montant de chaque ligne pièce et le total."""
+		total = 0.0
+		for row in self.parts:
+			row.amount = flt(row.qty) * flt(row.rate)
+			total += row.amount
+		self.total_parts_amount = total
+
+	def calculate_timesheet_total(self):
+		"""Calcule heures et montant facturable sur chaque ligne timesheet."""
+		total_hours = 0.0
+		total_amount = 0.0
+		for row in self.timesheets:
+			if row.from_time and row.to_time:
+				row.hours = flt(time_diff_in_hours(row.to_time, row.from_time), 2)
+			if row.is_billable:
+				row.billing_hours = row.billing_hours or row.hours
+				row.billing_amount = flt(row.billing_hours) * flt(row.hourly_rate)
+				total_amount += row.billing_amount
+			total_hours += flt(row.hours)
+		self.total_hours = flt(total_hours, 2)
+		self.total_timesheet_amount = total_amount
+
+	def calculate_total_amount(self):
+		"""Calcule le montant total selon le type de facturation."""
+		if self.billing_type == "Forfait":
+			self.total_amount = flt(self.fixed_price)
+		elif self.billing_type == "Gratuit":
+			self.total_amount = 0.0
+		else:
+			# Temps et Matériaux / Heures prépayées
+			self.total_amount = flt(self.total_parts_amount) + flt(self.total_timesheet_amount)
+
+	def sync_timesheet_hours(self):
+		"""Met à jour actual_start/end depuis les lignes timesheet si non renseigné."""
+		if not self.timesheets:
+			return
+		times = [
+			(row.from_time, row.to_time)
+			for row in self.timesheets
+			if row.from_time
+		]
+		if not times:
+			return
+		if not self.actual_start:
+			self.actual_start = min(t[0] for t in times)
+		if not self.actual_end:
+			ends = [t[1] for t in times if t[1]]
+			if ends:
+				self.actual_end = max(ends)
+
+	# ------------------------------------------------------------------ #
+	#  Actions métier                                                      #
+	# ------------------------------------------------------------------ #
+
+	@frappe.whitelist()
+	def start_intervention(self):
+		"""Démarre l'intervention : passe au stage 'En cours'."""
+		closed_stages = _get_closed_stage_names()
+		if self.status in closed_stages:
+			frappe.throw(_("Impossible de démarrer une intervention au statut '{0}'").format(self.status))
+		stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "En cours", "stage_type": "Ordre"}, "name"
+		)
+		self.actual_start = now_datetime()
+		if stage:
+			self.fsm_stage = stage
+		self.status = "En cours"
+		self.save()
+		frappe.msgprint(_("Intervention démarrée le {0}").format(self.actual_start), alert=True)
+
+	@frappe.whitelist()
+	def end_intervention(self):
+		"""Termine l'intervention : passe au stage 'Terminé'."""
+		if self.status != "En cours":
+			frappe.throw(_("L'intervention n'est pas en cours (statut actuel : {0})").format(self.status))
+		if not self.actual_start:
+			frappe.throw(_("La date de début réelle est manquante."))
+		self.actual_end = now_datetime()
+		self.set_actual_duration()
+		stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Terminé", "stage_type": "Ordre"}, "name"
+		)
+		if stage:
+			self.fsm_stage = stage
+		self.status = "Terminé"
+		self.save()
+		# Mise à jour des dates de maintenance de l'équipement
+		if self.fsm_equipment:
+			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
+			eq.update_after_service(str(self.actual_end)[:10])
+		frappe.msgprint(
+			_("Intervention terminée. Durée : {0} h").format(self.actual_duration),
+			alert=True,
+		)
+
+	@frappe.whitelist()
+	def create_invoice(self):
+		"""Crée une facture client (Sales Invoice) depuis l'ordre d'intervention."""
+		if self.status not in ("Terminé",):
+			frappe.throw(_("Veuillez d'abord terminer l'intervention avant de facturer."))
+		if self.invoice:
+			frappe.throw(_("Une facture {0} existe déjà pour cet ordre.").format(self.invoice))
+		if self.billing_type == "Gratuit":
+			frappe.throw(_("Cette intervention est gratuite — pas de facture à créer."))
+
+		invoice = frappe.new_doc("Sales Invoice")
+		invoice.customer = self.customer
+		invoice.company = self.company
+		invoice.field_service_order = self.name
+
+		# Lignes pièces/produits
+		for part in self.parts:
+			invoice.append("items", {
+				"item_code": part.item_code,
+				"item_name": part.item_name,
+				"description": part.description or part.item_name,
+				"qty": part.qty,
+				"uom": part.uom,
+				"rate": part.rate,
+				"amount": part.amount,
+				"warehouse": part.warehouse,
+			})
+
+		# Lignes main-d'œuvre (temps facturables)
+		if self.billing_type == "Temps et Matériaux":
+			for ts in self.timesheets:
+				if ts.is_billable and ts.billing_hours:
+					invoice.append("items", {
+						"item_name": _("Main-d'œuvre — {0}").format(ts.activity_type or ts.employee_name),
+						"description": ts.description or _("Temps technicien"),
+						"qty": ts.billing_hours,
+						"uom": "Hour",
+						"rate": ts.hourly_rate,
+						"amount": ts.billing_amount,
+					})
+		elif self.billing_type == "Forfait":
+			invoice.append("items", {
+				"item_name": _("Forfait intervention — {0}").format(self.title),
+				"description": self.description or self.title,
+				"qty": 1,
+				"rate": self.fixed_price,
+				"amount": self.fixed_price,
+			})
+
+		invoice.insert(ignore_permissions=True)
+		invoice.submit()
+
+		invoiced_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Facturé", "stage_type": "Ordre"}, "name"
+		)
+		self.db_set("invoice", invoice.name)
+		self.db_set("status", "Facturé")
+		if invoiced_stage:
+			self.db_set("fsm_stage", invoiced_stage)
+
+		frappe.msgprint(
+			_("Facture {0} créée avec succès.").format(
+				frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
+			),
+			title=_("Facture créée"),
+		)
+		return invoice.name
+
+	# ------------------------------------------------------------------ #
+	#  Événements Frappe                                                   #
+	# ------------------------------------------------------------------ #
+
+	def on_submit(self):
+		if self.status == "Nouveau":
+			self.db_set("status", "Planifié")
+
+	def after_submit_completed(self):
+		"""Appelé manuellement après end_intervention pour mettre à jour l'équipement."""
+		if self.fsm_equipment and self.status == "Terminé":
+			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
+			eq.update_after_service(self.actual_end or today())
+
+	def on_cancel(self):
+		cancelled_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
+		)
+		self.db_set("status", "Annulé")
+		if cancelled_stage:
+			self.db_set("fsm_stage", cancelled_stage)
+		if self.invoice:
+			frappe.throw(
+				_("Impossible d'annuler : la facture {0} est déjà émise. Annulez d'abord la facture.").format(
+					self.invoice
+				)
+			)
+
+	def before_print(self, settings=None):
+		"""Prépare les données pour le rapport d'intervention PDF."""
+		self.signature_html = (
+			f'<img src="{self.customer_signature}" style="max-height:80px;"/>'
+			if self.customer_signature
+			else ""
+		)
+
+
+# ------------------------------------------------------------------ #
+#  API publique                                                        #
+# ------------------------------------------------------------------ #
+
+	def apply_sla(self):
+		"""Calcule et assigne les deadlines SLA si pas encore définis."""
+		if self.sla_response_due and self.sla_resolution_due:
+			return  # Déjà calculé
+		from flow.field_service.doctype.fsm_sla_policy.fsm_sla_policy import get_applicable_policy
+		policy = get_applicable_policy(
+			fsm_team=self.fsm_team,
+			activity_type=self.activity_type,
+			company=self.company,
+		)
+		if not policy:
+			return
+		deadlines = policy.get_deadlines_for_priority(self.priority or "Normal")
+		self.sla_policy = policy.name
+		self.sla_response_due = deadlines.get("response_due")
+		self.sla_resolution_due = deadlines.get("resolution_due")
+
+	def update_sla_status(self):
+		"""Met à jour les indicateurs de respect du SLA."""
+		from frappe.utils import now_datetime, get_datetime
+		now = now_datetime()
+		closed_statuses = {"Terminé", "Facturé", "Annulé"}
+
+		# Statut prise en charge : Respecté si l'intervention a démarré avant sla_response_due
+		if self.sla_response_due:
+			if self.actual_start:
+				actual = get_datetime(self.actual_start)
+				due = get_datetime(self.sla_response_due)
+				self.sla_response_status = "Respecté" if actual <= due else "Dépassé"
+			elif self.status not in closed_statuses and now > get_datetime(self.sla_response_due):
+				self.sla_response_status = "Dépassé"
+
+		# Statut résolution : Respecté si terminé avant sla_resolution_due
+		if self.sla_resolution_due:
+			if self.status in {"Terminé", "Facturé"}:
+				end = get_datetime(self.actual_end) if self.actual_end else now
+				due = get_datetime(self.sla_resolution_due)
+				self.sla_resolution_status = "Respecté" if end <= due else "Dépassé"
+			elif self.status not in closed_statuses and now > get_datetime(self.sla_resolution_due):
+				self.sla_resolution_status = "Dépassé"
+
+	# ------------------------------------------------------------------ #
+	#  Actions métier                                                      #
+	# ------------------------------------------------------------------ #
+
+def _get_closed_stage_names():
+	"""Retourne les noms des stages marqués is_closed=1."""
+	return frappe.db.get_all(
+		"FSM Stage",
+		filters={"is_closed": 1, "stage_type": "Ordre"},
+		pluck="stage_name",
+	)
+
+
+@frappe.whitelist()
+def get_open_orders_for_technician(employee):
+	"""Retourne les interventions ouvertes pour un technicien (usage mobile/portail)."""
+	return frappe.get_all(
+		"Field Service Order",
+		filters={
+			"assigned_to": employee,
+			"status": ["in", ["Planifié", "En cours", "En attente de pièces"]],
+		},
+		fields=[
+			"name", "title", "status", "priority", "customer_name",
+			"scheduled_date", "scheduled_time", "address_display", "activity_type",
+		],
+		order_by="scheduled_date asc, scheduled_time asc",
+	)
+
+
+@frappe.whitelist()
+def get_dashboard_data():
+	"""Données pour le tableau de bord Field Service."""
+	statuses = ["Nouveau", "Planifié", "En cours", "En attente de pièces", "Terminé", "Facturé"]
+	result = {}
+	for status in statuses:
+		result[status] = frappe.db.count("Field Service Order", {"status": status})
+	return result
