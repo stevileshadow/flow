@@ -75,7 +75,8 @@
   "customer_feedback",
   "column_break_footer",
   "amended_from",
-  "is_preventive_maintenance"
+  "is_preventive_maintenance",
+  "sla_escalated"
  ],
  "fields": [
   {
@@ -534,6 +535,15 @@
    "hidden": 1,
    "label": "Maintenance pr\u00e9ventive",
    "no_copy": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "sla_escalated",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "SLA escalad\u00e9",
+   "no_copy": 1,
+   "read_only": 1
   }
  ],
  "icon": "fa fa-wrench",

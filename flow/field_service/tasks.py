@@ -135,6 +135,115 @@ def generate_preventive_maintenance_orders():
 		frappe.logger().info(f"[FSM] {created} ordre(s) de maintenance préventive créé(s)")
 
 
+def send_previsit_notifications():
+	"""D — Envoie un rappel au client la veille de son intervention (statut Planifié)."""
+	tomorrow = add_days(today(), 1)
+	orders = frappe.get_all(
+		"Field Service Order",
+		filters={
+			"scheduled_date": tomorrow,
+			"status": "Planifié",
+		},
+		fields=["name", "title", "customer_name", "contact_person", "contact_email",
+		        "assigned_to_name", "scheduled_time"],
+	)
+	for order in orders:
+		email = order.contact_email or None
+		if not email and order.contact_person:
+			email = frappe.db.get_value("Contact", order.contact_person, "email_id")
+		if not email:
+			continue
+		frappe.sendmail(
+			recipients=[email],
+			subject=_("Rappel : intervention prévue demain — {0}").format(order.title),
+			message=_(
+				"Bonjour {0},\n\n"
+				"Nous vous rappelons qu'une intervention est planifiée demain :\n\n"
+				"  Référence : {1}\n"
+				"  Date      : {2}\n"
+				"  Heure     : {3}\n"
+				"  Technicien: {4}\n\n"
+				"N'hésitez pas à nous contacter pour toute question."
+			).format(
+				order.customer_name or _("Client"),
+				order.name,
+				tomorrow,
+				order.scheduled_time or _("À confirmer"),
+				order.assigned_to_name or _("À assigner"),
+			),
+		)
+
+
+def escalate_breached_sla_orders():
+	"""F — Notifie le Responsable d'équipe (une seule fois) quand le SLA résolution est dépassé."""
+	breached = frappe.get_all(
+		"Field Service Order",
+		filters={
+			"sla_resolution_status": "Dépassé",
+			"sla_escalated": 0,
+			"status": ["not in", ["Terminé", "Facturé", "Annulé"]],
+		},
+		fields=["name", "title", "customer_name", "fsm_team",
+		        "assigned_to_name", "sla_resolution_due", "priority"],
+	)
+	if not breached:
+		return
+
+	for order in breached:
+		manager_emails = []
+
+		# Responsable(s) de l'équipe assignée
+		if order.fsm_team:
+			managers = frappe.get_all(
+				"FSM Team Member",
+				filters={"parent": order.fsm_team, "role_in_team": "Responsable"},
+				fields=["user_id"],
+			)
+			manager_emails = [m.user_id for m in managers if m.user_id]
+
+		# Fallback : tous les utilisateurs avec le rôle Field Service Manager
+		if not manager_emails:
+			manager_emails = [
+				r.parent for r in frappe.get_all(
+					"Has Role",
+					filters={"role": "Field Service Manager", "parenttype": "User"},
+					fields=["parent"],
+				)
+			]
+
+		if not manager_emails:
+			continue
+
+		frappe.sendmail(
+			recipients=manager_emails,
+			subject=_("[ALERTE SLA] Intervention {0} — délai de résolution dépassé").format(order.name),
+			message=_(
+				"Bonjour,\n\n"
+				"Le SLA de résolution est dépassé pour l'intervention suivante :\n\n"
+				"  Référence : {0}\n"
+				"  Titre     : {1}\n"
+				"  Client    : {2}\n"
+				"  Priorité  : {3}\n"
+				"  Technicien: {4}\n"
+				"  Échéance  : {5}\n\n"
+				"Veuillez prendre les mesures nécessaires."
+			).format(
+				order.name,
+				order.title,
+				order.customer_name,
+				order.priority,
+				order.assigned_to_name or _("Non assigné"),
+				order.sla_resolution_due,
+			),
+		)
+		frappe.db.set_value(
+			"Field Service Order", order.name, "sla_escalated", 1,
+			update_modified=False,
+		)
+
+	frappe.db.commit()
+
+
 def notify_technician_on_assignment(doc, method=None):
 	"""Notifie le technicien lors de la soumission de l'ordre."""
 	if not doc.assigned_to:

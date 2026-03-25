@@ -41,15 +41,17 @@ has_permission = {
 
 scheduler_events = {
 	"cron": {
-		# Chaque matin à 7h : rappel techniciens + génération ordres PM
+		# Chaque matin à 7h : rappels techniciens, notifs pré-visite clients, ordres PM
 		"0 7 * * *": [
 			"flow.field_service.tasks.send_daily_reminders",
+			"flow.field_service.tasks.send_previsit_notifications",
 			"flow.field_service.tasks.generate_preventive_maintenance_orders",
 		],
-		# Chaque heure : détection des retards + mise à jour statuts SLA
+		# Chaque heure : retards, SLA, escalades
 		"0 * * * *": [
 			"flow.field_service.tasks.flag_overdue_orders",
 			"flow.field_service.tasks.update_sla_statuses",
+			"flow.field_service.tasks.escalate_breached_sla_orders",
 		],
 	}
 }

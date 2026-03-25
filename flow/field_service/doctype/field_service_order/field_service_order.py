@@ -26,6 +26,8 @@ class FieldServiceOrder(Document):
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+		self._warn_technician_conflict()
+		self._warn_low_stock()
 
 	def apply_template_on_new(self):
 		"""Applique le modèle uniquement lors de la création (doc is new)."""
@@ -169,6 +171,68 @@ class FieldServiceOrder(Document):
 			ends = [t[1] for t in times if t[1]]
 			if ends:
 				self.actual_end = max(ends)
+
+	def _warn_technician_conflict(self):
+		"""E — Avertit (sans bloquer) si le technicien a un autre ordre le même jour."""
+		if not self.assigned_to or not self.scheduled_date:
+			return
+		filters = {
+			"assigned_to": self.assigned_to,
+			"scheduled_date": self.scheduled_date,
+			"status": ["not in", ["Terminé", "Facturé", "Annulé"]],
+		}
+		if not self.is_new():
+			filters["name"] = ["!=", self.name]
+		conflicts = frappe.get_all(
+			"Field Service Order",
+			filters=filters,
+			fields=["name", "title", "scheduled_time"],
+			limit=5,
+		)
+		if not conflicts:
+			return
+		lines = ", ".join(
+			f"{c.name} ({c.scheduled_time or _('heure n/d')})" for c in conflicts
+		)
+		frappe.msgprint(
+			_("{0} a déjà {1} autre(s) intervention(s) le {2} : {3}").format(
+				self.assigned_to_name or self.assigned_to,
+				len(conflicts),
+				self.scheduled_date,
+				lines,
+			),
+			title=_("Conflit d'agenda"),
+			indicator="orange",
+		)
+
+	def _warn_low_stock(self):
+		"""G — Avertit (sans bloquer) si une pièce manque de stock dans l'entrepôt."""
+		warnings = []
+		for row in self.parts:
+			if not row.item_code or not row.warehouse or not flt(row.qty):
+				continue
+			available = flt(
+				frappe.db.get_value(
+					"Bin",
+					{"item_code": row.item_code, "warehouse": row.warehouse},
+					"actual_qty",
+				) or 0
+			)
+			if available < flt(row.qty):
+				warnings.append(
+					_("{0} : {1} disponible(s), {2} requis(e)(s) — {3}").format(
+						row.item_name or row.item_code,
+						available,
+						row.qty,
+						row.warehouse,
+					)
+				)
+		if warnings:
+			frappe.msgprint(
+				"<br>".join(warnings),
+				title=_("Stock insuffisant"),
+				indicator="orange",
+			)
 
 	def _handle_status_transitions(self):
 		"""Gère en un seul passage (B) la pause SLA et (C partiel) le statut équipement
