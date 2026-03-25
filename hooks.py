@@ -81,4 +81,8 @@ fixtures = [
 		"doctype": "Role",
 		"filters": [["role_name", "in", ["Field Service Manager", "Field Service User"]]]
 	},
+	{
+		"doctype": "Print Format",
+		"filters": [["doc_type", "=", "Field Service Order"]]
+	},
 ]
