@@ -1,0 +1,127 @@
+{
+ "actions": [],
+ "autoname": "field:team_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "team_name",
+  "active",
+  "column_break_1",
+  "color",
+  "company",
+  "section_break_2",
+  "description",
+  "section_members",
+  "members",
+  "section_stages",
+  "stages_section_note",
+  "stage_ids"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "team_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom de l'\u00e9quipe",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Actif"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Couleur"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "section_members",
+   "fieldtype": "Section Break",
+   "label": "Membres de l'\u00e9quipe"
+  },
+  {
+   "fieldname": "members",
+   "fieldtype": "Table",
+   "label": "Membres",
+   "options": "FSM Team Member"
+  },
+  {
+   "fieldname": "section_stages",
+   "fieldtype": "Section Break",
+   "label": "\u00c9tapes Kanban de l'\u00e9quipe"
+  },
+  {
+   "fieldname": "stages_section_note",
+   "fieldtype": "HTML",
+   "options": "<p class='text-muted small'>S\u00e9lectionnez les \u00e9tapes visibles pour cette \u00e9quipe. Laissez vide pour utiliser toutes les \u00e9tapes.</p>"
+  },
+  {
+   "fieldname": "stage_ids",
+   "fieldtype": "Table MultiSelect",
+   "label": "\u00c9tapes associ\u00e9es",
+   "options": "FSM Team Stage"
+  }
+ ],
+ "links": [
+  {
+   "group": "Interventions",
+   "link_doctype": "Field Service Order",
+   "link_fieldname": "fsm_team"
+  }
+ ],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Team",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "team_name",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 1
+}

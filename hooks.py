@@ -56,6 +56,10 @@ fixtures = [
 		"filters": []
 	},
 	{
+		"doctype": "FSM Stage",
+		"filters": []
+	},
+	{
 		"doctype": "Role",
 		"filters": [["role_name", "in", ["Field Service Manager", "Field Service User"]]]
 	},

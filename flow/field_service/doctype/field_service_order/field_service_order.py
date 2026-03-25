@@ -14,11 +14,37 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 
 	def validate(self):
+		self.sync_stage_and_status()
 		self.set_actual_duration()
 		self.calculate_parts_total()
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+
+	def sync_stage_and_status(self):
+		"""Synchronise fsm_stage ↔ status bidirectionnellement.
+		- Si fsm_stage change → met à jour status
+		- Si status change sans fsm_stage → cherche l'étape correspondante
+		"""
+		if self.fsm_stage:
+			stage = frappe.get_cached_doc("FSM Stage", self.fsm_stage)
+			# Synchronise le champ status lisible depuis le stage
+			self.status = stage.stage_name
+		elif self.status:
+			# Cherche l'étape dont le nom correspond au status
+			stage_name = frappe.db.get_value(
+				"FSM Stage", {"stage_name": self.status, "stage_type": "Ordre"}, "name"
+			)
+			if stage_name:
+				self.fsm_stage = stage_name
+		else:
+			# Cherche l'étape par défaut
+			default = frappe.db.get_value(
+				"FSM Stage", {"stage_type": "Ordre", "is_default": 1}, "name"
+			)
+			if default:
+				self.fsm_stage = default
+				self.status = default
 
 	def set_actual_duration(self):
 		"""Calcule la durée réelle entre actual_start et actual_end."""
@@ -84,23 +110,34 @@ class FieldServiceOrder(Document):
 
 	@frappe.whitelist()
 	def start_intervention(self):
-		"""Démarre l'intervention : passe en 'En cours' et note l'heure de début."""
-		if self.status not in ("Nouveau", "Planifié"):
+		"""Démarre l'intervention : passe au stage 'En cours'."""
+		closed_stages = _get_closed_stage_names()
+		if self.status in closed_stages:
 			frappe.throw(_("Impossible de démarrer une intervention au statut '{0}'").format(self.status))
+		stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "En cours", "stage_type": "Ordre"}, "name"
+		)
 		self.actual_start = now_datetime()
+		if stage:
+			self.fsm_stage = stage
 		self.status = "En cours"
 		self.save()
 		frappe.msgprint(_("Intervention démarrée le {0}").format(self.actual_start), alert=True)
 
 	@frappe.whitelist()
 	def end_intervention(self):
-		"""Termine l'intervention : passe en 'Terminé' et note l'heure de fin."""
+		"""Termine l'intervention : passe au stage 'Terminé'."""
 		if self.status != "En cours":
 			frappe.throw(_("L'intervention n'est pas en cours (statut actuel : {0})").format(self.status))
 		if not self.actual_start:
 			frappe.throw(_("La date de début réelle est manquante."))
 		self.actual_end = now_datetime()
 		self.set_actual_duration()
+		stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Terminé", "stage_type": "Ordre"}, "name"
+		)
+		if stage:
+			self.fsm_stage = stage
 		self.status = "Terminé"
 		self.save()
 		frappe.msgprint(
@@ -160,8 +197,13 @@ class FieldServiceOrder(Document):
 		invoice.insert(ignore_permissions=True)
 		invoice.submit()
 
+		invoiced_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Facturé", "stage_type": "Ordre"}, "name"
+		)
 		self.db_set("invoice", invoice.name)
 		self.db_set("status", "Facturé")
+		if invoiced_stage:
+			self.db_set("fsm_stage", invoiced_stage)
 
 		frappe.msgprint(
 			_("Facture {0} créée avec succès.").format(
@@ -180,7 +222,12 @@ class FieldServiceOrder(Document):
 			self.db_set("status", "Planifié")
 
 	def on_cancel(self):
+		cancelled_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
+		)
 		self.db_set("status", "Annulé")
+		if cancelled_stage:
+			self.db_set("fsm_stage", cancelled_stage)
 		if self.invoice:
 			frappe.throw(
 				_("Impossible d'annuler : la facture {0} est déjà émise. Annulez d'abord la facture.").format(
@@ -200,6 +247,15 @@ class FieldServiceOrder(Document):
 # ------------------------------------------------------------------ #
 #  API publique                                                        #
 # ------------------------------------------------------------------ #
+
+def _get_closed_stage_names():
+	"""Retourne les noms des stages marqués is_closed=1."""
+	return frappe.db.get_all(
+		"FSM Stage",
+		filters={"is_closed": 1, "stage_type": "Ordre"},
+		pluck="stage_name",
+	)
+
 
 @frappe.whitelist()
 def get_open_orders_for_technician(employee):

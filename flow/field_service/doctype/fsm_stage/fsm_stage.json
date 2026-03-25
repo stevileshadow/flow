@@ -1,0 +1,125 @@
+{
+ "actions": [],
+ "autoname": "field:stage_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "stage_name",
+  "sequence",
+  "column_break_1",
+  "stage_type",
+  "color",
+  "section_break_2",
+  "is_default",
+  "is_closed",
+  "fold",
+  "column_break_3",
+  "company"
+ ],
+ "fields": [
+  {
+   "fieldname": "stage_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom de l'\u00e9tape",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "10",
+   "fieldname": "sequence",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Ordre",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Ordre",
+   "fieldname": "stage_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type",
+   "options": "Ordre\n\u00c9quipement\nEmp lacement"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "in_list_view": 1,
+   "label": "Couleur"
+  },
+  {
+   "fieldname": "section_break_2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "\u00c9tape par d\u00e9faut"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_closed",
+   "fieldtype": "Check",
+   "label": "\u00c9tape cl\u00f4turante",
+   "description": "Les ordres dans cette \u00e9tape sont consid\u00e9r\u00e9s comme termin\u00e9s"
+  },
+  {
+   "default": "0",
+   "fieldname": "fold",
+   "fieldtype": "Check",
+   "label": "Replier dans le Kanban"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company"
+  }
+ ],
+ "links": [
+  {
+   "group": "Interventions",
+   "link_doctype": "Field Service Order",
+   "link_fieldname": "fsm_stage"
+  }
+ ],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Stage",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "sequence",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}

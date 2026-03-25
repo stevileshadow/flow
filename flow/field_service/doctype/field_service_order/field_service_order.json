@@ -13,11 +13,13 @@
  "field_order": [
   "naming_series",
   "title",
+  "fsm_stage",
   "status",
   "priority",
   "activity_type",
   "column_break_header",
   "company",
+  "fsm_team",
   "assigned_to",
   "assigned_to_name",
   "scheduled_date",
@@ -60,6 +62,25 @@
   "amended_from"
  ],
  "fields": [
+  {
+   "fieldname": "fsm_stage",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "\u00c9tape",
+   "options": "FSM Stage",
+   "search_index": 1,
+   "track_changes": 1
+  },
+  {
+   "fieldname": "fsm_team",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "\u00c9quipe",
+   "options": "FSM Team",
+   "search_index": 1
+  },
   {
    "fieldname": "naming_series",
    "fieldtype": "Select",
