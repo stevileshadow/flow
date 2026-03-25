@@ -1,0 +1,439 @@
+{
+ "actions": [
+  {
+   "action": "Submit",
+   "label": "Valider"
+  }
+ ],
+ "autoname": "naming_series:",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "title",
+  "status",
+  "priority",
+  "activity_type",
+  "column_break_header",
+  "company",
+  "assigned_to",
+  "assigned_to_name",
+  "scheduled_date",
+  "scheduled_time",
+  "scheduled_duration",
+  "section_customer",
+  "customer",
+  "customer_name",
+  "contact_person",
+  "contact_mobile",
+  "contact_email",
+  "column_break_customer",
+  "customer_address",
+  "address_display",
+  "territory",
+  "section_schedule",
+  "actual_start",
+  "actual_end",
+  "actual_duration",
+  "column_break_schedule",
+  "billing_type",
+  "fixed_price",
+  "section_description",
+  "description",
+  "internal_notes",
+  "section_parts",
+  "parts",
+  "total_parts_amount",
+  "section_timesheets",
+  "timesheets",
+  "total_hours",
+  "total_timesheet_amount",
+  "section_invoice",
+  "invoice",
+  "total_amount",
+  "section_signature",
+  "customer_signature",
+  "customer_feedback",
+  "column_break_footer",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "S\u00e9rie",
+   "no_copy": 1,
+   "options": "FSO-.YYYY.-\nINT-.YYYY.-",
+   "print_hide": 1,
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Titre de l'intervention",
+   "reqd": 1
+  },
+  {
+   "default": "Nouveau",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Statut",
+   "options": "Nouveau\nPlanifi\u00e9\nEn cours\nEn attente de pi\u00e8ces\nTermin\u00e9\nFactur\u00e9\nAnnul\u00e9",
+   "read_only": 0,
+   "reqd": 1,
+   "track_changes": 1
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Priorit\u00e9",
+   "options": "Faible\nNormal\nUrgent\nTr\u00e8s urgent"
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type d'intervention",
+   "options": "Field Service Activity Type"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Technicien assign\u00e9",
+   "options": "Employee",
+   "search_index": 1
+  },
+  {
+   "fetch_from": "assigned_to.employee_name",
+   "fieldname": "assigned_to_name",
+   "fieldtype": "Data",
+   "label": "Nom du technicien",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scheduled_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date planifi\u00e9e",
+   "reqd": 0
+  },
+  {
+   "fieldname": "scheduled_time",
+   "fieldtype": "Time",
+   "label": "Heure planifi\u00e9e"
+  },
+  {
+   "fieldname": "scheduled_duration",
+   "fieldtype": "Float",
+   "label": "Dur\u00e9e pr\u00e9vue (h)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "section_customer",
+   "fieldtype": "Section Break",
+   "label": "Client"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_global_search": 1,
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Customer",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom du client",
+   "read_only": 1
+  },
+  {
+   "depends_on": "customer",
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Personne de contact",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "contact_mobile",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "T\u00e9l\u00e9phone",
+   "options": "Phone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Email contact",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_customer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "customer",
+   "fieldname": "customer_address",
+   "fieldtype": "Link",
+   "label": "Adresse d'intervention",
+   "options": "Address"
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Text Editor",
+   "hidden": 1,
+   "label": "Adresse compl\u00e8te",
+   "read_only": 1
+  },
+  {
+   "fieldname": "territory",
+   "fieldtype": "Link",
+   "label": "Zone",
+   "options": "Territory"
+  },
+  {
+   "fieldname": "section_schedule",
+   "fieldtype": "Section Break",
+   "label": "Ex\u00e9cution"
+  },
+  {
+   "fieldname": "actual_start",
+   "fieldtype": "Datetime",
+   "label": "D\u00e9but r\u00e9el",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "actual_end",
+   "fieldtype": "Datetime",
+   "label": "Fin r\u00e9elle",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "actual_duration",
+   "fieldtype": "Float",
+   "label": "Dur\u00e9e r\u00e9elle (h)",
+   "no_copy": 1,
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Temps et Mat\u00e9riaux",
+   "fieldname": "billing_type",
+   "fieldtype": "Select",
+   "label": "Type de facturation",
+   "options": "Forfait\nTemps et Mat\u00e9riaux\nHeures pr\u00e9pay\u00e9es\nGratuit"
+  },
+  {
+   "depends_on": "eval: doc.billing_type === 'Forfait'",
+   "fieldname": "fixed_price",
+   "fieldtype": "Currency",
+   "label": "Prix forfaitaire",
+   "options": "currency"
+  },
+  {
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description de l'intervention"
+  },
+  {
+   "fieldname": "internal_notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes internes",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "section_parts",
+   "fieldtype": "Section Break",
+   "label": "Pi\u00e8ces et produits utilis\u00e9s"
+  },
+  {
+   "fieldname": "parts",
+   "fieldtype": "Table",
+   "label": "Pi\u00e8ces / Produits",
+   "options": "Field Service Parts Line"
+  },
+  {
+   "fieldname": "total_parts_amount",
+   "fieldtype": "Currency",
+   "label": "Total pi\u00e8ces",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_timesheets",
+   "fieldtype": "Section Break",
+   "label": "Feuilles de temps"
+  },
+  {
+   "fieldname": "timesheets",
+   "fieldtype": "Table",
+   "label": "Temps pass\u00e9",
+   "options": "Field Service Timesheet Line"
+  },
+  {
+   "fieldname": "total_hours",
+   "fieldtype": "Float",
+   "label": "Total heures",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_timesheet_amount",
+   "fieldtype": "Currency",
+   "label": "Total main-d'\u0153uvre",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_invoice",
+   "fieldtype": "Section Break",
+   "label": "Facturation",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "invoice",
+   "fieldtype": "Link",
+   "label": "Facture associ\u00e9e",
+   "no_copy": 1,
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Montant total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_signature",
+   "fieldtype": "Section Break",
+   "label": "Cl\u00f4ture et signature client"
+  },
+  {
+   "fieldname": "customer_signature",
+   "fieldtype": "Signature",
+   "label": "Signature du client",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "customer_feedback",
+   "fieldtype": "Small Text",
+   "label": "Commentaire client",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_footer",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Modifi\u00e9 depuis",
+   "no_copy": 1,
+   "options": "Field Service Order",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "icon": "fa fa-wrench",
+ "is_submittable": 1,
+ "links": [
+  {
+   "group": "Facturation",
+   "link_doctype": "Sales Invoice",
+   "link_fieldname": "field_service_order"
+  }
+ ],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "Field Service Order",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "status,customer_name,assigned_to_name,scheduled_date,activity_type",
+ "show_name_in_global_search": 1,
+ "sort_field": "scheduled_date",
+ "sort_order": "ASC",
+ "states": [
+  {"color": "Gray", "title": "Nouveau"},
+  {"color": "Blue", "title": "Planifi\u00e9"},
+  {"color": "Yellow", "title": "En cours"},
+  {"color": "Orange", "title": "En attente de pi\u00e8ces"},
+  {"color": "Green", "title": "Termin\u00e9"},
+  {"color": "Purple", "title": "Factur\u00e9"},
+  {"color": "Red", "title": "Annul\u00e9"}
+ ],
+ "timeline_field": "customer",
+ "title_field": "title",
+ "track_changes": 1
+}

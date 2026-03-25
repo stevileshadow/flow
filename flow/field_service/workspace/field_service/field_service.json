@@ -1,0 +1,49 @@
+{
+ "charts": [
+  {
+   "chart_name": "Interventions par statut",
+   "label": "Interventions par statut"
+  }
+ ],
+ "content": "[{\"id\":\"section_1\",\"type\":\"header\",\"data\":{\"text\":\"Services sur Site\",\"level\":4}},{\"id\":\"section_shortcuts\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Field Service Order\",\"col\":3}},{\"id\":\"section_shortcuts2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nouveau FSO\",\"col\":3}},{\"id\":\"section_shortcuts3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Field Service Activity Type\",\"col\":3}}]",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "fa fa-wrench",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Services sur Site",
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "Field Service",
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "roles": [],
+ "sequence_id": 70,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "format": "{} Interventions",
+   "label": "Ordres d'intervention",
+   "link_to": "Field Service Order",
+   "stats_filter": "{\"status\": [\"in\", [\"Nouveau\", \"Planifi\\u00e9\", \"En cours\"]]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "format": "{} Urgentes",
+   "label": "Interventions urgentes",
+   "link_to": "Field Service Order",
+   "stats_filter": "{\"priority\": \"Urgent\", \"status\": [\"not in\", [\"Termin\\u00e9\", \"Factur\\u00e9\", \"Annul\\u00e9\"]]}",
+   "type": "DocType"
+  },
+  {
+   "color": "Green",
+   "label": "Types d'activit\u00e9",
+   "link_to": "Field Service Activity Type",
+   "type": "DocType"
+  }
+ ]
+}
