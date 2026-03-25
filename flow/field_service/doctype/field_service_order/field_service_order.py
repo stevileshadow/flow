@@ -14,12 +14,35 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 
 	def validate(self):
+		self.prefill_from_location()
 		self.sync_stage_and_status()
 		self.set_actual_duration()
 		self.calculate_parts_total()
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+
+	def prefill_from_location(self):
+		"""Auto-remplit client, contact, adresse et équipe depuis FSM Location."""
+		if not self.fsm_location:
+			return
+		# Ne pas écraser les champs déjà renseignés manuellement
+		loc = frappe.get_cached_doc("FSM Location", self.fsm_location)
+		if not self.customer and loc.customer:
+			self.customer = loc.customer
+			self.customer_name = loc.customer_name
+		if not self.contact_person and loc.contact_person:
+			self.contact_person = loc.contact_person
+		if not self.customer_address and loc.address:
+			self.customer_address = loc.address
+		if not self.fsm_team and loc.fsm_team:
+			self.fsm_team = loc.fsm_team
+		if not self.assigned_to and loc.assigned_workers:
+			primary = next((w.employee for w in loc.assigned_workers if w.is_primary), None)
+			if primary:
+				self.assigned_to = primary
+		if not self.directions and loc.directions:
+			self.directions = loc.directions
 
 	def sync_stage_and_status(self):
 		"""Synchronise fsm_stage ↔ status bidirectionnellement.

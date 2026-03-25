@@ -1,0 +1,250 @@
+{
+ "actions": [],
+ "autoname": "field:location_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "location_name",
+  "complete_name",
+  "active",
+  "column_break_header",
+  "parent_location",
+  "fsm_team",
+  "company",
+  "section_client",
+  "customer",
+  "customer_name",
+  "contact_person",
+  "contact_mobile",
+  "contact_email",
+  "column_break_client",
+  "address",
+  "address_display",
+  "description",
+  "section_geo",
+  "latitude",
+  "longitude",
+  "column_break_geo",
+  "directions",
+  "section_workers",
+  "assigned_workers",
+  "section_notes",
+  "notes"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "location_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom du lieu",
+   "reqd": 1
+  },
+  {
+   "fieldname": "complete_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Chemin complet",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Actif"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "parent_location",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Lieu parent",
+   "options": "FSM Location"
+  },
+  {
+   "fieldname": "fsm_team",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "\u00c9quipe par d\u00e9faut",
+   "options": "FSM Team"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "section_client",
+   "fieldtype": "Section Break",
+   "label": "Client et contact"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Customer",
+   "search_index": 1
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom du client",
+   "read_only": 1
+  },
+  {
+   "depends_on": "customer",
+   "fieldname": "contact_person",
+   "fieldtype": "Link",
+   "label": "Contact sur place",
+   "options": "Contact"
+  },
+  {
+   "fieldname": "contact_mobile",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "T\u00e9l\u00e9phone",
+   "options": "Phone",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Email",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_client",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Link",
+   "label": "Adresse",
+   "options": "Address"
+  },
+  {
+   "fieldname": "address_display",
+   "fieldtype": "Text Editor",
+   "hidden": 1,
+   "label": "Adresse compl\u00e8te",
+   "read_only": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description courte"
+  },
+  {
+   "fieldname": "section_geo",
+   "fieldtype": "Section Break",
+   "label": "G\u00e9olocalisation"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "6"
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "6"
+  },
+  {
+   "fieldname": "column_break_geo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "directions",
+   "fieldtype": "Text Editor",
+   "label": "Instructions d'acc\u00e8s",
+   "description": "Indications pour le technicien (code badge, interphone, parking...)"
+  },
+  {
+   "fieldname": "section_workers",
+   "fieldtype": "Section Break",
+   "label": "Techniciens assign\u00e9s"
+  },
+  {
+   "fieldname": "assigned_workers",
+   "fieldtype": "Table",
+   "label": "Techniciens",
+   "options": "FSM Location Worker"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes internes",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "links": [
+  {
+   "group": "Interventions",
+   "link_doctype": "Field Service Order",
+   "link_fieldname": "fsm_location"
+  },
+  {
+   "group": "Sous-lieux",
+   "link_doctype": "FSM Location",
+   "link_fieldname": "parent_location"
+  }
+ ],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Location",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "customer_name,complete_name,address_display",
+ "show_name_in_global_search": 1,
+ "sort_field": "location_name",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "location_name",
+ "track_changes": 1
+}
