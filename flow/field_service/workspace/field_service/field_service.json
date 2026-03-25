@@ -9,7 +9,7 @@
  "creation": "2026-03-25 00:00:00.000000",
  "doctype": "Workspace",
  "hide_custom": 0,
- "icon": "fa fa-wrench",
+ "icon": "🛠️",
  "idx": 0,
  "is_hidden": 0,
  "label": "Services sur Site",
@@ -21,7 +21,7 @@
  "parent_page": "",
  "public": 1,
  "roles": [],
- "sequence_id": 70,
+ "sequence_id": 14,
  "shortcuts": [
   {
    "color": "Blue",
