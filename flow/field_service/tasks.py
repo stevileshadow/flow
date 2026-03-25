@@ -79,6 +79,62 @@ def update_sla_statuses():
 		frappe.db.commit()
 
 
+def generate_preventive_maintenance_orders():
+	"""Crée automatiquement un ordre de maintenance préventive pour chaque équipement
+	dont la date de prochain entretien est atteinte et qui n'a pas déjà un ordre PM ouvert."""
+	overdue = frappe.get_all(
+		"FSM Equipment",
+		filters={
+			"next_service_date": ["<=", today()],
+			"active": 1,
+			"status": ["not in", ["Hors service", "Retiré"]],
+		},
+		fields=["name", "equipment_name", "fsm_location", "customer",
+		        "customer_name", "assigned_to", "company"],
+	)
+	if not overdue:
+		return
+
+	default_company = frappe.defaults.get_global_default("company")
+	created = 0
+
+	for eq in overdue:
+		# Ne crée pas si un ordre PM ouvert existe déjà pour cet équipement
+		has_open = frappe.db.exists(
+			"Field Service Order",
+			{
+				"fsm_equipment": eq.name,
+				"is_preventive_maintenance": 1,
+				"status": ["not in", ["Terminé", "Facturé", "Annulé"]],
+			},
+		)
+		if has_open:
+			continue
+
+		order = frappe.new_doc("Field Service Order")
+		order.title = _("Maintenance préventive — {0}").format(eq.equipment_name)
+		order.is_preventive_maintenance = 1
+		order.fsm_equipment = eq.name
+		order.fsm_location = eq.fsm_location
+		order.customer = eq.customer
+		order.customer_name = eq.customer_name
+		order.company = eq.company or default_company
+		order.priority = "Normal"
+		order.scheduled_date = today()
+		if eq.assigned_to:
+			order.assigned_to = eq.assigned_to
+
+		try:
+			order.insert(ignore_permissions=True)
+			created += 1
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "FSM: Échec création ordre PM")
+
+	if created:
+		frappe.db.commit()
+		frappe.logger().info(f"[FSM] {created} ordre(s) de maintenance préventive créé(s)")
+
+
 def notify_technician_on_assignment(doc, method=None):
 	"""Notifie le technicien lors de la soumission de l'ordre."""
 	if not doc.assigned_to:

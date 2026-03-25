@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime, time_diff_in_hours
+from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours
 
 
 class FieldServiceOrder(Document):
@@ -18,6 +18,7 @@ class FieldServiceOrder(Document):
 		self.prefill_from_equipment()
 		self.prefill_from_location()
 		self.sync_stage_and_status()
+		self._handle_status_transitions()
 		self.apply_sla()
 		self.update_sla_status()
 		self.set_actual_duration()
@@ -169,6 +170,45 @@ class FieldServiceOrder(Document):
 			if ends:
 				self.actual_end = max(ends)
 
+	def _handle_status_transitions(self):
+		"""Gère en un seul passage (B) la pause SLA et (C partiel) le statut équipement
+		lors des changements de statut sauvegardés via validate."""
+		if self.is_new():
+			return
+		old_status = frappe.db.get_value("Field Service Order", self.name, "status")
+		if old_status == self.status:
+			return
+
+		HOLD = "En attente de pièces"
+
+		# B — Pause / Reprise SLA
+		if self.sla_policy:
+			pause_on_hold = frappe.db.get_value("FSM SLA Policy", self.sla_policy, "pause_on_hold")
+			if pause_on_hold:
+				if self.status == HOLD and old_status != HOLD:
+					# Entrée en attente : enregistre l'heure de suspension
+					self.sla_paused_since = now_datetime()
+				elif old_status == HOLD and self.status != HOLD and self.sla_paused_since:
+					# Sortie d'attente : prolonge les deadlines du temps de suspension
+					paused_hours = time_diff_in_hours(now_datetime(), get_datetime(self.sla_paused_since))
+					if self.sla_response_due:
+						self.sla_response_due = add_to_date(
+							get_datetime(self.sla_response_due), hours=paused_hours
+						)
+					if self.sla_resolution_due:
+						self.sla_resolution_due = add_to_date(
+							get_datetime(self.sla_resolution_due), hours=paused_hours
+						)
+					self.sla_paused_since = None
+
+		# C — Sync statut équipement (transitions passant par validate)
+		if self.fsm_equipment:
+			if self.status == HOLD:
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", HOLD)
+			elif old_status == HOLD and self.status == "En cours":
+				# Retour en cours après attente de pièces
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "En maintenance")
+
 	# ------------------------------------------------------------------ #
 	#  Actions métier                                                      #
 	# ------------------------------------------------------------------ #
@@ -187,6 +227,9 @@ class FieldServiceOrder(Document):
 			self.fsm_stage = stage
 		self.status = "En cours"
 		self.save()
+		# C — Équipement → En maintenance dès le démarrage
+		if self.fsm_equipment:
+			frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "En maintenance")
 		frappe.msgprint(_("Intervention démarrée le {0}").format(self.actual_start), alert=True)
 
 	@frappe.whitelist()
@@ -205,8 +248,11 @@ class FieldServiceOrder(Document):
 			self.fsm_stage = stage
 		self.status = "Terminé"
 		self.save()
-		# Mise à jour des dates de maintenance de l'équipement
+		# C — Équipement → Actif à la clôture + mise à jour dates maintenance
 		if self.fsm_equipment:
+			eq_status = frappe.db.get_value("FSM Equipment", self.fsm_equipment, "status")
+			if eq_status in ("En maintenance", "En attente de pièces"):
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "Actif")
 			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
 			eq.update_after_service(str(self.actual_end)[:10])
 		frappe.msgprint(

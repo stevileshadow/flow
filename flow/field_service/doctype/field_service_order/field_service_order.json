@@ -74,7 +74,8 @@
   "customer_signature",
   "customer_feedback",
   "column_break_footer",
-  "amended_from"
+  "amended_from",
+  "is_preventive_maintenance"
  ],
  "fields": [
   {
@@ -525,6 +526,14 @@
    "options": "Field Service Order",
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_preventive_maintenance",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Maintenance pr\u00e9ventive",
+   "no_copy": 1
   }
  ],
  "icon": "fa fa-wrench",
