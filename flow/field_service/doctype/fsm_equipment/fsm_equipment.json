@@ -1,0 +1,304 @@
+{
+ "actions": [],
+ "autoname": "field:equipment_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "equipment_name",
+  "complete_name",
+  "active",
+  "column_break_header",
+  "parent_equipment",
+  "status",
+  "company",
+  "section_identity",
+  "serial_no",
+  "model",
+  "manufacturer",
+  "column_break_identity",
+  "category",
+  "color",
+  "purchase_date",
+  "section_location",
+  "fsm_location",
+  "customer",
+  "customer_name",
+  "column_break_location",
+  "assigned_to",
+  "assigned_to_name",
+  "current_location_note",
+  "section_warranty",
+  "warranty_expiry",
+  "warranty_by",
+  "column_break_warranty",
+  "last_service_date",
+  "next_service_date",
+  "maintenance_interval_days",
+  "section_description",
+  "description",
+  "section_notes",
+  "notes"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "equipment_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom de l'\u00e9quipement",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "complete_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Chemin complet",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Actif"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "parent_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "\u00c9quipement parent",
+   "options": "FSM Equipment"
+  },
+  {
+   "default": "Actif",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Statut",
+   "options": "Actif\nEn maintenance\nEn attente de pi\u00e8ces\nHors service\nRetir\u00e9",
+   "track_changes": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "section_identity",
+   "fieldtype": "Section Break",
+   "label": "Identification"
+  },
+  {
+   "fieldname": "serial_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "N\u00b0 de s\u00e9rie"
+  },
+  {
+   "fieldname": "model",
+   "fieldtype": "Data",
+   "label": "Mod\u00e8le"
+  },
+  {
+   "fieldname": "manufacturer",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Fabricant"
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Data",
+   "in_standard_filter": 1,
+   "label": "Cat\u00e9gorie"
+  },
+  {
+   "fieldname": "color",
+   "fieldtype": "Color",
+   "label": "Couleur"
+  },
+  {
+   "fieldname": "purchase_date",
+   "fieldtype": "Date",
+   "label": "Date d'achat"
+  },
+  {
+   "fieldname": "section_location",
+   "fieldtype": "Section Break",
+   "label": "Emplacement et propri\u00e9taire"
+  },
+  {
+   "fieldname": "fsm_location",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Lieu d'installation",
+   "options": "FSM Location"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Client propri\u00e9taire",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Nom du client",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_location",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "assigned_to",
+   "fieldtype": "Link",
+   "label": "Technicien responsable",
+   "options": "Employee"
+  },
+  {
+   "fetch_from": "assigned_to.employee_name",
+   "fieldname": "assigned_to_name",
+   "fieldtype": "Data",
+   "label": "Nom du technicien",
+   "read_only": 1
+  },
+  {
+   "fieldname": "current_location_note",
+   "fieldtype": "Small Text",
+   "label": "Note d'emplacement actuel",
+   "description": "Si l'\u00e9quipement a \u00e9t\u00e9 d\u00e9plac\u00e9 temporairement"
+  },
+  {
+   "fieldname": "section_warranty",
+   "fieldtype": "Section Break",
+   "label": "Garantie et maintenance"
+  },
+  {
+   "fieldname": "warranty_expiry",
+   "fieldtype": "Date",
+   "label": "Fin de garantie"
+  },
+  {
+   "fieldname": "warranty_by",
+   "fieldtype": "Data",
+   "label": "Garantie assur\u00e9e par"
+  },
+  {
+   "fieldname": "column_break_warranty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "last_service_date",
+   "fieldtype": "Date",
+   "label": "Dernier entretien",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "next_service_date",
+   "fieldtype": "Date",
+   "label": "Prochain entretien",
+   "no_copy": 1
+  },
+  {
+   "fieldname": "maintenance_interval_days",
+   "fieldtype": "Int",
+   "label": "Intervalle de maintenance (jours)",
+   "description": "Calcul automatique du prochain entretien apr\u00e8s chaque intervention"
+  },
+  {
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description technique"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes internes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Text Editor",
+   "label": "Notes"
+  }
+ ],
+ "links": [
+  {
+   "group": "Interventions",
+   "link_doctype": "Field Service Order",
+   "link_fieldname": "fsm_equipment"
+  },
+  {
+   "group": "Sous-\u00e9quipements",
+   "link_doctype": "FSM Equipment",
+   "link_fieldname": "parent_equipment"
+  }
+ ],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Equipment",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service User",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "serial_no,model,manufacturer,customer_name",
+ "show_name_in_global_search": 1,
+ "sort_field": "equipment_name",
+ "sort_order": "ASC",
+ "states": [
+  {"color": "Green",  "title": "Actif"},
+  {"color": "Yellow", "title": "En maintenance"},
+  {"color": "Orange", "title": "En attente de pi\u00e8ces"},
+  {"color": "Red",    "title": "Hors service"},
+  {"color": "Gray",   "title": "Retir\u00e9"}
+ ],
+ "title_field": "equipment_name",
+ "track_changes": 1
+}

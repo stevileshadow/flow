@@ -1,0 +1,156 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2026-03-25 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "active",
+  "column_break_header",
+  "activity_type",
+  "billing_type",
+  "fsm_team",
+  "column_break_2",
+  "scheduled_duration",
+  "priority",
+  "company",
+  "section_description",
+  "description",
+  "section_instructions",
+  "instructions",
+  "section_parts",
+  "default_parts"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom du mod\u00e8le",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Actif"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Type d'intervention",
+   "options": "Field Service Activity Type"
+  },
+  {
+   "fieldname": "billing_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Facturation",
+   "options": "\nForfait\nTemps et Mat\u00e9riaux\nHeures pr\u00e9pay\u00e9es\nGratuit"
+  },
+  {
+   "fieldname": "fsm_team",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "\u00c9quipe",
+   "options": "FSM Team"
+  },
+  {
+   "fieldname": "column_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scheduled_duration",
+   "fieldtype": "Float",
+   "label": "Dur\u00e9e pr\u00e9vue (h)",
+   "precision": "2"
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priorit\u00e9 par d\u00e9faut",
+   "options": "Faible\nNormal\nUrgent\nTr\u00e8s urgent"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description pr\u00e9-remplie"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description de l'intervention",
+   "description": "Sera copi\u00e9e dans chaque ordre cr\u00e9\u00e9 depuis ce mod\u00e8le"
+  },
+  {
+   "fieldname": "section_instructions",
+   "fieldtype": "Section Break",
+   "label": "Instructions technicien (checklist)"
+  },
+  {
+   "fieldname": "instructions",
+   "fieldtype": "Text Editor",
+   "label": "Instructions \u00e0 suivre",
+   "description": "Check-list, \u00e9tapes proc\u00e9durales, consignes de s\u00e9curit\u00e9..."
+  },
+  {
+   "fieldname": "section_parts",
+   "fieldtype": "Section Break",
+   "label": "Pi\u00e8ces / Produits standards"
+  },
+  {
+   "fieldname": "default_parts",
+   "fieldtype": "Table",
+   "label": "Pi\u00e8ces par d\u00e9faut",
+   "options": "FSM Template Parts Line"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-25 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "template_name",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}

@@ -13,6 +13,7 @@
  "field_order": [
   "naming_series",
   "title",
+  "fsm_template",
   "fsm_stage",
   "status",
   "priority",
@@ -27,6 +28,7 @@
   "scheduled_duration",
   "section_customer",
   "fsm_location",
+  "fsm_equipment",
   "customer",
   "customer_name",
   "contact_person",
@@ -64,6 +66,13 @@
   "amended_from"
  ],
  "fields": [
+  {
+   "fieldname": "fsm_template",
+   "fieldtype": "Link",
+   "label": "Mod\u00e8le d'intervention",
+   "options": "FSM Template",
+   "description": "S\u00e9lectionnez un mod\u00e8le pour pr\u00e9-remplir automatiquement ce formulaire"
+  },
   {
    "fieldname": "fsm_stage",
    "fieldtype": "Link",
@@ -189,6 +198,15 @@
    "in_standard_filter": 1,
    "label": "Lieu d'intervention",
    "options": "FSM Location",
+   "search_index": 1
+  },
+  {
+   "fieldname": "fsm_equipment",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "\u00c9quipement concern\u00e9",
+   "options": "FSM Equipment",
    "search_index": 1
   },
   {

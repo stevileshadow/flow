@@ -14,6 +14,8 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 
 	def validate(self):
+		self.apply_template_on_new()
+		self.prefill_from_equipment()
 		self.prefill_from_location()
 		self.sync_stage_and_status()
 		self.set_actual_duration()
@@ -21,6 +23,44 @@ class FieldServiceOrder(Document):
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+
+	def apply_template_on_new(self):
+		"""Applique le modèle uniquement lors de la création (doc is new)."""
+		if not self.fsm_template or not self.is_new():
+			return
+		tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+		if tpl.activity_type and not self.activity_type:
+			self.activity_type = tpl.activity_type
+		if tpl.billing_type and not self.billing_type:
+			self.billing_type = tpl.billing_type
+		if tpl.fsm_team and not self.fsm_team:
+			self.fsm_team = tpl.fsm_team
+		if tpl.priority and not self.priority:
+			self.priority = tpl.priority
+		if tpl.scheduled_duration and not self.scheduled_duration:
+			self.scheduled_duration = tpl.scheduled_duration
+		if tpl.description and not self.description:
+			self.description = tpl.description
+		if tpl.instructions and not self.internal_notes:
+			self.internal_notes = tpl.instructions
+		for part in tpl.default_parts:
+			self.append("parts", {
+				"item_code": part.item_code,
+				"item_name": part.item_name,
+				"qty": part.qty,
+				"uom": part.uom,
+			})
+
+	def prefill_from_equipment(self):
+		"""Auto-remplit lieu et client depuis l'équipement sélectionné."""
+		if not self.fsm_equipment:
+			return
+		eq = frappe.get_cached_doc("FSM Equipment", self.fsm_equipment)
+		if eq.fsm_location and not self.fsm_location:
+			self.fsm_location = eq.fsm_location
+		if eq.customer and not self.customer:
+			self.customer = eq.customer
+			self.customer_name = eq.customer_name
 
 	def prefill_from_location(self):
 		"""Auto-remplit client, contact, adresse et équipe depuis FSM Location."""
@@ -163,6 +203,10 @@ class FieldServiceOrder(Document):
 			self.fsm_stage = stage
 		self.status = "Terminé"
 		self.save()
+		# Mise à jour des dates de maintenance de l'équipement
+		if self.fsm_equipment:
+			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
+			eq.update_after_service(str(self.actual_end)[:10])
 		frappe.msgprint(
 			_("Intervention terminée. Durée : {0} h").format(self.actual_duration),
 			alert=True,
@@ -243,6 +287,12 @@ class FieldServiceOrder(Document):
 	def on_submit(self):
 		if self.status == "Nouveau":
 			self.db_set("status", "Planifié")
+
+	def after_submit_completed(self):
+		"""Appelé manuellement après end_intervention pour mettre à jour l'équipement."""
+		if self.fsm_equipment and self.status == "Terminé":
+			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
+			eq.update_after_service(self.actual_end or today())
 
 	def on_cancel(self):
 		cancelled_stage = frappe.db.get_value(
