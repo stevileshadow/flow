@@ -1,0 +1,137 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-03-26 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "field_service_order",
+  "employee",
+  "employee_name",
+  "user_id",
+  "section_timesheets",
+  "timesheets",
+  "section_status",
+  "is_consolidated",
+  "consolidated_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "S\u00e9rie",
+   "no_copy": 1,
+   "options": "FTT-.YYYY.-",
+   "print_hide": 1,
+   "reqd": 1,
+   "set_only_once": 1
+  },
+  {
+   "bold": 1,
+   "fieldname": "field_service_order",
+   "fieldtype": "Link",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Ordre d'intervention",
+   "options": "Field Service Order",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Technicien",
+   "options": "Employee",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.user_id",
+   "fieldname": "user_id",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Utilisateur",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_timesheets",
+   "fieldtype": "Section Break",
+   "label": "Heures saisies"
+  },
+  {
+   "fieldname": "timesheets",
+   "fieldtype": "Table",
+   "label": "Lignes de temps",
+   "options": "FSM Tech Timesheet Line"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Consolidation"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_consolidated",
+   "fieldtype": "Check",
+   "label": "Consolid\u00e9 dans l'ordre",
+   "no_copy": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "consolidated_at",
+   "fieldtype": "Datetime",
+   "label": "Consolid\u00e9 le",
+   "no_copy": 1,
+   "read_only": 1
+  }
+ ],
+ "links": [
+  {
+   "group": "Ordre",
+   "link_doctype": "Field Service Order",
+   "link_fieldname": "field_service_order"
+  }
+ ],
+ "modified": "2026-03-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Technician Timesheet",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1, "delete": 1, "email": 1, "print": 1,
+   "read": 1, "report": 1, "role": "Field Service Manager",
+   "share": 1, "write": 1
+  },
+  {
+   "create": 1, "email": 1, "print": 1,
+   "read": 1, "report": 1, "role": "Field Service User",
+   "write": 1
+  }
+ ],
+ "search_fields": "field_service_order,employee_name",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [
+  {"color": "Blue",  "title": "En attente"},
+  {"color": "Green", "title": "Consolid\u00e9e"}
+ ],
+ "title_field": "field_service_order",
+ "track_changes": 1
+}

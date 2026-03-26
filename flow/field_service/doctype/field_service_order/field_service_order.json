@@ -26,6 +26,8 @@
   "scheduled_date",
   "scheduled_time",
   "scheduled_duration",
+  "section_technicians",
+  "technicians",
   "section_customer",
   "fsm_location",
   "fsm_equipment",
@@ -201,6 +203,18 @@
    "fieldtype": "Float",
    "label": "Dur\u00e9e pr\u00e9vue (h)",
    "precision": "2"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_technicians",
+   "fieldtype": "Section Break",
+   "label": "Intervenants"
+  },
+  {
+   "fieldname": "technicians",
+   "fieldtype": "Table",
+   "label": "Techniciens assign\u00e9s",
+   "options": "FSM Order Technician"
   },
   {
    "fieldname": "section_customer",

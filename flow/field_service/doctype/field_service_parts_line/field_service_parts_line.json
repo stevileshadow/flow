@@ -126,12 +126,12 @@
    "fieldname": "rental_unit",
    "fieldtype": "Select",
    "label": "Unit\u00e9",
-   "options": "Jour\nSemaine\nMois"
+   "options": "Minute\nHeure\nJour\nSemaine\nMois\nAnn\u00e9e"
   },
   {
    "depends_on": "eval: doc.part_type == 'En location'",
    "fieldname": "date_sortie",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "label": "Date de sortie",
    "no_copy": 1
   },
@@ -142,7 +142,7 @@
   {
    "depends_on": "eval: doc.part_type == 'En location'",
    "fieldname": "date_retour",
-   "fieldtype": "Date",
+   "fieldtype": "Datetime",
    "label": "Date de retour",
    "no_copy": 1
   },

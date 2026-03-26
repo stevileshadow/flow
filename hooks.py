@@ -20,11 +20,18 @@ portal_menu_items = [
 		"route": "/my/interventions",
 		"reference_doctype": "Field Service Order",
 		"role": "Customer",
-	}
+	},
+	{
+		"title": "Mon espace technicien",
+		"route": "/my/technician",
+		"reference_doctype": "Field Service Order",
+		"role": "Field Service User",
+	},
 ]
 
 website_route_rules = [
 	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
+	{"from_route": "/my/technician/<name>", "to_route": "my/technician/detail"},
 ]
 
 # ------------------------------------------------------------------ #
@@ -33,6 +40,7 @@ website_route_rules = [
 
 has_permission = {
 	"Field Service Order": "flow.field_service.doctype.field_service_order.field_service_order.has_permission",
+	"FSM Technician Timesheet": "flow.field_service.doctype.field_service_order.field_service_order.has_permission_timesheet",
 }
 
 # ------------------------------------------------------------------ #

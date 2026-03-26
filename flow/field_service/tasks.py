@@ -245,31 +245,46 @@ def escalate_breached_sla_orders():
 
 
 def notify_technician_on_assignment(doc, method=None):
-	"""Notifie le technicien lors de la soumission de l'ordre."""
-	if not doc.assigned_to:
-		return
-	user = frappe.db.get_value("Employee", doc.assigned_to, "user_id")
-	if not user:
-		return
-	frappe.sendmail(
-		recipients=[user],
-		subject=_("Nouvelle intervention assignée : {0}").format(doc.title),
-		message=_(
-			"Bonjour {0},\n\n"
-			"Une intervention vous a été assignée :\n\n"
-			"  Référence : {1}\n"
-			"  Client    : {2}\n"
-			"  Date      : {3}\n"
-			"  Priorité  : {4}\n\n"
-			"Connectez-vous à Flow pour consulter les détails."
-		).format(
-			doc.assigned_to_name,
-			doc.name,
-			doc.customer_name,
-			doc.scheduled_date or _("À planifier"),
-			doc.priority,
-		),
-	)
+	"""Notifie le(s) technicien(s) lors de la soumission de l'ordre."""
+	recipients = []
+
+	# Technicien lead / assigné principal
+	if doc.assigned_to:
+		user = frappe.db.get_value("Employee", doc.assigned_to, "user_id")
+		if user:
+			recipients.append((user, doc.assigned_to_name or doc.assigned_to))
+
+	# Techniciens secondaires (table enfant FSM Order Technician)
+	if getattr(doc, "technicians", None):
+		for tech in doc.technicians:
+			if tech.employee == doc.assigned_to:
+				continue  # déjà notifié via assigned_to
+			sec_user = tech.user_id or frappe.db.get_value("Employee", tech.employee, "user_id")
+			if sec_user:
+				recipients.append((sec_user, tech.employee_name or tech.employee))
+
+	for user, name in recipients:
+		frappe.sendmail(
+			recipients=[user],
+			subject=_("Nouvelle intervention assignée : {0}").format(doc.title),
+			message=_(
+				"Bonjour {0},\n\n"
+				"Une intervention vous a été assignée :\n\n"
+				"  Référence : {1}\n"
+				"  Client    : {2}\n"
+				"  Date      : {3}\n"
+				"  Priorité  : {4}\n\n"
+				"Connectez-vous à Flow pour consulter les détails.\n"
+				"Portail technicien : {5}/my/technician"
+			).format(
+				name,
+				doc.name,
+				doc.customer_name,
+				doc.scheduled_date or _("À planifier"),
+				doc.priority,
+				frappe.utils.get_url(),
+			),
+		)
 
 
 def notify_cancellation(doc, method=None):

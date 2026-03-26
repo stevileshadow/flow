@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import add_to_date, date_diff, flt, get_datetime, getdate, now_datetime, time_diff_in_hours, today
+from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours, today
 
 
 class FieldServiceOrder(Document):
@@ -26,6 +26,8 @@ class FieldServiceOrder(Document):
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+		self.validate_technicians()
+		self.validate_required_fields_on_close()
 		self._warn_technician_conflict()
 		self._warn_low_stock()
 
@@ -247,6 +249,50 @@ class FieldServiceOrder(Document):
 				indicator="orange",
 			)
 
+	def validate_technicians(self):
+		"""Vérifie les règles d'assignation multi-techniciens définies dans le gabarit."""
+		if not self.technicians:
+			return
+		tpl = None
+		if self.fsm_template:
+			tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+
+		# Limite du nombre de techniciens
+		max_tech = int(tpl.max_technicians) if tpl and tpl.max_technicians else 0
+		if max_tech and len(self.technicians) > max_tech:
+			frappe.throw(
+				_("Ce gabarit autorise au maximum {0} technicien(s) ({1} assigné(s)).").format(
+					max_tech, len(self.technicians)
+				)
+			)
+
+		# Unicité du lead
+		leads = [t for t in self.technicians if t.is_lead]
+		require_lead = tpl.require_lead if tpl else True
+		if len(leads) > 1:
+			frappe.throw(_("Un seul technicien peut être défini comme responsable (lead)."))
+		if require_lead and not leads:
+			frappe.throw(_("Ce gabarit exige qu'un technicien responsable (lead) soit désigné."))
+
+		# Synchronise assigned_to avec le lead
+		if leads:
+			self.assigned_to = leads[0].employee
+			self.assigned_to_name = leads[0].employee_name
+
+	def validate_required_fields_on_close(self):
+		"""Vérifie les champs obligatoires à la clôture (statut Terminé) selon le gabarit."""
+		if self.status != "Terminé":
+			return
+		if not self.fsm_template:
+			return
+		tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+		if tpl.require_signature and not self.customer_signature:
+			frappe.throw(_("La signature du client est obligatoire pour clôturer cette intervention."))
+		if tpl.require_description_on_close and not self.description:
+			frappe.throw(_("Une description est obligatoire pour clôturer cette intervention."))
+		if tpl.require_parts and not self.parts:
+			frappe.throw(_("Au moins une pièce doit être renseignée pour clôturer cette intervention."))
+
 	def _handle_status_transitions(self):
 		"""Gère en un seul passage (B) la pause SLA et (C partiel) le statut équipement
 		lors des changements de statut sauvegardés via validate."""
@@ -303,11 +349,11 @@ class FieldServiceOrder(Document):
 		if stage:
 			self.fsm_stage = stage
 		self.status = "En cours"
-		# Auto-remplir date_sortie pour les pièces en location sans date encore définie
-		today_date = today()
+		# Auto-remplir date_sortie (Datetime) pour les pièces en location sans date encore définie
+		departure_dt = now_datetime()
 		for part in self.parts:
 			if getattr(part, "part_type", "Consommée") == "En location" and not part.date_sortie:
-				part.date_sortie = today_date
+				part.date_sortie = departure_dt
 		self.save()
 		# C — Équipement → En maintenance dès le démarrage
 		if self.fsm_equipment:
@@ -334,6 +380,7 @@ class FieldServiceOrder(Document):
 		if stage:
 			self.fsm_stage = stage
 		self.status = "Terminé"
+		self.consolidate_timesheets()
 		self.save()
 		# C — Équipement → Actif à la clôture + mise à jour dates maintenance
 		if self.fsm_equipment:
@@ -450,6 +497,40 @@ class FieldServiceOrder(Document):
 			)
 		frappe.msgprint(msg, title=_("Facturation terminée"))
 		return invoice.name
+
+	@frappe.whitelist()
+	def consolidate_timesheets(self):
+		"""Importe les feuilles de temps des techniciens secondaires dans l'ordre."""
+		pending = frappe.get_all(
+			"FSM Technician Timesheet",
+			filters={"field_service_order": self.name, "is_consolidated": 0},
+			fields=["name", "employee", "employee_name"],
+		)
+		if not pending:
+			return
+		consolidated_at = now_datetime()
+		for ts_ref in pending:
+			ts = frappe.get_doc("FSM Technician Timesheet", ts_ref.name)
+			for line in ts.timesheets:
+				self.append("timesheets", {
+					"employee": ts.employee,
+					"employee_name": ts.employee_name,
+					"from_time": line.from_time,
+					"to_time": line.to_time,
+					"hours": line.hours,
+					"activity_type": line.activity_type,
+					"is_break": line.is_break,
+					"is_billable": line.is_billable,
+					"billing_hours": line.billing_hours,
+					"hourly_rate": line.hourly_rate,
+					"billing_amount": line.billing_amount,
+					"description": line.description,
+				})
+			frappe.db.set_value(
+				"FSM Technician Timesheet", ts.name,
+				{"is_consolidated": 1, "consolidated_at": consolidated_at},
+				update_modified=False,
+			)
 
 	def _create_stock_entry_for_parts(self):
 		"""Crée un Material Issue pour les pièces Consommées (pas les locations).
@@ -643,17 +724,28 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 
 def _rental_duration(row):
-	"""Calcule la durée de location en unités (jours, semaines ou mois)."""
+	"""Calcule la durée de location en unités (Minute/Heure/Jour/Semaine/Mois/Année)."""
 	if not row.date_sortie:
 		return 1
-	end = getdate(row.date_retour) if row.date_retour else getdate(today())
-	days = max(1, date_diff(end, getdate(row.date_sortie)))
+	start = get_datetime(row.date_sortie)
+	end = get_datetime(row.date_retour) if row.date_retour else now_datetime()
+	total_seconds = max(0.0, (end - start).total_seconds())
 	unit = getattr(row, "rental_unit", None) or "Jour"
+	if unit == "Minute":
+		return max(1, int(total_seconds / 60))
+	if unit == "Heure":
+		return max(1, int(total_seconds / 3600))
 	if unit == "Semaine":
-		return max(1, -(-days // 7))   # division plafond
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 7))   # division plafond
 	if unit == "Mois":
-		return max(1, -(-days // 30))
-	return days  # Jour
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 30))
+	if unit == "Année":
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 365))
+	# Jour (défaut)
+	return max(1, int(total_seconds / 86400))
 
 
 def _rental_amount(row):
@@ -668,6 +760,101 @@ def _get_closed_stage_names():
 		filters={"is_closed": 1, "stage_type": "Ordre"},
 		pluck="stage_name",
 	)
+
+
+def has_permission(doc, ptype, user):
+	"""Contrôle d'accès FSO pour les techniciens.
+	- Technicien lead (is_lead=1) : accès complet (write/read/…)
+	- Technicien secondaire        : lecture seule
+	- Autres utilisateurs          : None → règles normales Frappe
+	"""
+	if not user:
+		user = frappe.session.user
+	# Recherche dans la table enfant FSM Order Technician
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		return None
+	assignment = frappe.db.get_value(
+		"FSM Order Technician",
+		{"parent": doc.name, "employee": employee},
+		["is_lead"],
+		as_dict=True,
+	)
+	if assignment is None:
+		return None
+	if assignment.is_lead:
+		return True
+	# Technicien secondaire : lecture autorisée, écriture refusée
+	return ptype == "read"
+
+
+def has_permission_timesheet(doc, ptype, user):
+	"""Contrôle d'accès sur FSM Technician Timesheet.
+	Un technicien ne peut lire/écrire que sa propre feuille.
+	"""
+	if not user:
+		user = frappe.session.user
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		return None
+	if doc.employee == employee:
+		return True
+	# Les managers FSM voient tout (None → règles normales)
+	return None
+
+
+@frappe.whitelist()
+def submit_technician_timesheet(order_name, lines):
+	"""Crée ou met à jour la feuille de temps du technicien connecté pour un FSO.
+	`lines` est une liste de dicts (from_time, to_time, activity_type, …).
+	"""
+	import json
+	if isinstance(lines, str):
+		lines = json.loads(lines)
+
+	user = frappe.session.user
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		frappe.throw(_("Aucun employé associé à votre compte."))
+
+	# Vérifie que l'employé est bien secondaire sur l'ordre
+	assignment = frappe.db.get_value(
+		"FSM Order Technician",
+		{"parent": order_name, "employee": employee},
+		["is_lead"],
+		as_dict=True,
+	)
+	if not assignment:
+		frappe.throw(_("Vous n'êtes pas assigné à l'ordre {0}.").format(order_name))
+
+	# Vérifie le droit de saisie selon le gabarit
+	tpl_name = frappe.db.get_value("Field Service Order", order_name, "fsm_template")
+	if tpl_name:
+		secondary_can = frappe.db.get_value(
+			"FSM Template", tpl_name, "secondary_can_edit_timesheets"
+		)
+		if not assignment.is_lead and not secondary_can:
+			frappe.throw(_("La saisie d'heures n'est pas autorisée pour les techniciens secondaires sur ce gabarit."))
+
+	# Cherche ou crée le FSM Technician Timesheet
+	existing = frappe.db.get_value(
+		"FSM Technician Timesheet",
+		{"field_service_order": order_name, "employee": employee, "is_consolidated": 0},
+		"name",
+	)
+	if existing:
+		ts = frappe.get_doc("FSM Technician Timesheet", existing)
+		ts.timesheets = []  # remplace toutes les lignes
+	else:
+		ts = frappe.new_doc("FSM Technician Timesheet")
+		ts.field_service_order = order_name
+		ts.employee = employee
+
+	for line in lines:
+		ts.append("timesheets", line)
+
+	ts.save(ignore_permissions=True)
+	return ts.name
 
 
 @frappe.whitelist()

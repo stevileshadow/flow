@@ -1,0 +1,238 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="container my-4">
+
+  {# En-tête #}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <a href="/my/technician" class="text-muted small">← Retour à la liste</a>
+      <h3 class="mb-0 mt-1">{{ order.title }}</h3>
+    </div>
+    {% set status_colors = {
+      "Nouveau": "secondary", "Planifié": "primary",
+      "En cours": "warning text-dark", "En attente de pièces": "warning text-dark",
+      "Terminé": "success", "Facturé": "info", "Annulé": "danger"
+    } %}
+    <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }} fs-6">
+      {{ order.status }}
+    </span>
+  </div>
+
+  {# Infos générales #}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Informations générales</h5>
+      <div class="row">
+        <div class="col-md-6">
+          <ul class="list-unstyled">
+            <li><strong>Référence :</strong> {{ order.name }}</li>
+            <li><strong>Client :</strong> {{ order.customer_name or "—" }}</li>
+            <li><strong>Lieu :</strong> {{ order.fsm_location or "—" }}</li>
+            <li><strong>Adresse :</strong> {{ order.address_display or "—" }}</li>
+          </ul>
+        </div>
+        <div class="col-md-6">
+          <ul class="list-unstyled">
+            <li><strong>Date planifiée :</strong>
+              {{ frappe.format(order.scheduled_date, "Date") if order.scheduled_date else "—" }}
+              {% if order.scheduled_time %} à {{ order.scheduled_time[:5] }}{% endif %}
+            </li>
+            <li><strong>Priorité :</strong> {{ order.priority or "Normal" }}</li>
+            <li><strong>Activité :</strong> {{ order.activity_type or "—" }}</li>
+            {% if is_lead %}
+            <li><span class="badge bg-success">Vous êtes le technicien responsable</span></li>
+            {% else %}
+            <li><span class="badge bg-secondary">Technicien secondaire</span></li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+
+      {% if order.description %}
+      <hr>
+      <h6>Description</h6>
+      <div>{{ order.description }}</div>
+      {% endif %}
+
+      {% if order.internal_notes %}
+      <hr>
+      <h6>Instructions</h6>
+      <div>{{ order.internal_notes }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Saisie des heures #}
+  {% if can_edit_timesheets and order.status in ("Planifié", "En cours") %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Mes heures de travail</h5>
+
+      <div id="timesheet-lines">
+        {% for line in my_timesheet_lines %}
+        <div class="row g-2 mb-2 timesheet-row">
+          <div class="col-md-3">
+            <label class="form-label small">Début</label>
+            <input type="datetime-local" class="form-control form-control-sm ts-from"
+              value="{{ line.from_time[:16] if line.from_time else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Fin</label>
+            <input type="datetime-local" class="form-control form-control-sm ts-to"
+              value="{{ line.to_time[:16] if line.to_time else '' }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Type</label>
+            <input type="text" class="form-control form-control-sm ts-activity"
+              placeholder="ex: Installation" value="{{ line.activity_type or '' }}">
+          </div>
+          <div class="col-md-2 d-flex align-items-end gap-2">
+            <div class="form-check">
+              <input class="form-check-input ts-break" type="checkbox"
+                {{ 'checked' if line.is_break else '' }}>
+              <label class="form-check-label small">Pause</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input ts-billable" type="checkbox"
+                {{ 'checked' if line.is_billable else '' }}>
+              <label class="form-check-label small">Fact.</label>
+            </div>
+          </div>
+          <div class="col-md-2 d-flex align-items-end">
+            <input type="text" class="form-control form-control-sm ts-desc"
+              placeholder="Remarque" value="{{ line.description or '' }}">
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button class="btn btn-outline-secondary btn-sm mt-2" id="btn-add-line">
+        + Ajouter une ligne
+      </button>
+
+      <div class="mt-3">
+        <button class="btn btn-primary" id="btn-save-timesheet">
+          Enregistrer mes heures
+        </button>
+        <span id="ts-feedback" class="ms-2 small text-success" style="display:none;"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    function rowTemplate() {
+      return `<div class="row g-2 mb-2 timesheet-row">
+        <div class="col-md-3">
+          <label class="form-label small">Début</label>
+          <input type="datetime-local" class="form-control form-control-sm ts-from">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Fin</label>
+          <input type="datetime-local" class="form-control form-control-sm ts-to">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">Type</label>
+          <input type="text" class="form-control form-control-sm ts-activity" placeholder="ex: Installation">
+        </div>
+        <div class="col-md-2 d-flex align-items-end gap-2">
+          <div class="form-check">
+            <input class="form-check-input ts-break" type="checkbox">
+            <label class="form-check-label small">Pause</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input ts-billable" type="checkbox">
+            <label class="form-check-label small">Fact.</label>
+          </div>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+          <input type="text" class="form-control form-control-sm ts-desc" placeholder="Remarque">
+        </div>
+      </div>`;
+    }
+
+    document.getElementById('btn-add-line').addEventListener('click', function() {
+      document.getElementById('timesheet-lines').insertAdjacentHTML('beforeend', rowTemplate());
+    });
+
+    document.getElementById('btn-save-timesheet').addEventListener('click', function() {
+      var lines = [];
+      document.querySelectorAll('.timesheet-row').forEach(function(row) {
+        var from = row.querySelector('.ts-from').value;
+        var to = row.querySelector('.ts-to').value;
+        if (!from) return;
+        lines.push({
+          from_time: from.replace('T', ' ') + ':00',
+          to_time: to ? to.replace('T', ' ') + ':00' : null,
+          activity_type: row.querySelector('.ts-activity').value,
+          is_break: row.querySelector('.ts-break').checked ? 1 : 0,
+          is_billable: row.querySelector('.ts-billable').checked ? 1 : 0,
+          description: row.querySelector('.ts-desc').value,
+        });
+      });
+
+      fetch('/api/method/flow.field_service.doctype.field_service_order.field_service_order.submit_technician_timesheet', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': frappe.csrf_token},
+        body: JSON.stringify({order_name: '{{ order.name }}', lines: lines})
+      })
+      .then(r => r.json())
+      .then(function(res) {
+        if (res.message) {
+          var fb = document.getElementById('ts-feedback');
+          fb.textContent = 'Heures enregistrées.';
+          fb.style.display = 'inline';
+          setTimeout(function() { fb.style.display = 'none'; }, 3000);
+        }
+      })
+      .catch(function() {
+        alert("Erreur lors de l'enregistrement des heures.");
+      });
+    });
+  })();
+  </script>
+
+  {% elif not can_edit_timesheets %}
+  <div class="alert alert-info">
+    La saisie d'heures n'est pas autorisée pour les techniciens secondaires sur ce gabarit.
+  </div>
+  {% endif %}
+
+  {# Heures consolidées (lecture seule) #}
+  {% if order.timesheets %}
+  <div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Heures enregistrées sur l'ordre</h5>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Technicien</th>
+              <th>Début</th>
+              <th>Fin</th>
+              <th>Heures</th>
+              <th>Type</th>
+              <th>Pause</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ts in order.timesheets %}
+            <tr>
+              <td>{{ ts.employee_name or ts.employee or "—" }}</td>
+              <td>{{ frappe.format(ts.from_time, "Datetime") if ts.from_time else "—" }}</td>
+              <td>{{ frappe.format(ts.to_time, "Datetime") if ts.to_time else "—" }}</td>
+              <td>{{ ts.hours or "—" }}</td>
+              <td>{{ ts.activity_type or "—" }}</td>
+              <td>{{ "Oui" if ts.is_break else "Non" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
