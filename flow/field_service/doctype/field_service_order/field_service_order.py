@@ -4,7 +4,7 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, now_datetime, time_diff_in_hours
+from frappe.utils import add_to_date, flt, get_datetime, now_datetime, time_diff_in_hours, today
 
 
 class FieldServiceOrder(Document):
@@ -18,6 +18,7 @@ class FieldServiceOrder(Document):
 		self.prefill_from_equipment()
 		self.prefill_from_location()
 		self.sync_stage_and_status()
+		self._handle_status_transitions()
 		self.apply_sla()
 		self.update_sla_status()
 		self.set_actual_duration()
@@ -25,6 +26,10 @@ class FieldServiceOrder(Document):
 		self.calculate_timesheet_total()
 		self.calculate_total_amount()
 		self.sync_timesheet_hours()
+		self.validate_technicians()
+		self.validate_required_fields_on_close()
+		self._warn_technician_conflict()
+		self._warn_low_stock()
 
 	def apply_template_on_new(self):
 		"""Applique le modèle uniquement lors de la création (doc is new)."""
@@ -51,6 +56,9 @@ class FieldServiceOrder(Document):
 				"item_name": part.item_name,
 				"qty": part.qty,
 				"uom": part.uom,
+				"part_type": getattr(part, "part_type", "Consommée") or "Consommée",
+				"rental_rate": getattr(part, "rental_rate", None),
+				"rental_unit": getattr(part, "rental_unit", None) or "Jour",
 			})
 
 	def prefill_from_equipment(self):
@@ -119,12 +127,18 @@ class FieldServiceOrder(Document):
 			)
 
 	def calculate_parts_total(self):
-		"""Calcule le montant de chaque ligne pièce et le total."""
-		total = 0.0
+		"""Calcule le montant de chaque ligne pièce (consommée ou location) et les totaux."""
+		total_consumed = 0.0
+		total_rental = 0.0
 		for row in self.parts:
-			row.amount = flt(row.qty) * flt(row.rate)
-			total += row.amount
-		self.total_parts_amount = total
+			if getattr(row, "part_type", "Consommée") == "En location":
+				row.amount = _rental_amount(row)
+				total_rental += row.amount
+			else:
+				row.amount = flt(row.qty) * flt(row.rate)
+				total_consumed += row.amount
+		self.total_parts_amount = total_consumed
+		self.total_rental_amount = total_rental
 
 	def calculate_timesheet_total(self):
 		"""Calcule heures et montant facturable sur chaque ligne timesheet."""
@@ -149,7 +163,11 @@ class FieldServiceOrder(Document):
 			self.total_amount = 0.0
 		else:
 			# Temps et Matériaux / Heures prépayées
-			self.total_amount = flt(self.total_parts_amount) + flt(self.total_timesheet_amount)
+			self.total_amount = (
+				flt(self.total_parts_amount)
+				+ flt(self.total_timesheet_amount)
+				+ flt(self.total_rental_amount)
+			)
 
 	def sync_timesheet_hours(self):
 		"""Met à jour actual_start/end depuis les lignes timesheet si non renseigné."""
@@ -169,6 +187,151 @@ class FieldServiceOrder(Document):
 			if ends:
 				self.actual_end = max(ends)
 
+	def _warn_technician_conflict(self):
+		"""E — Avertit (sans bloquer) si le technicien a un autre ordre le même jour."""
+		if not self.assigned_to or not self.scheduled_date:
+			return
+		filters = {
+			"assigned_to": self.assigned_to,
+			"scheduled_date": self.scheduled_date,
+			"status": ["not in", ["Terminé", "Facturé", "Annulé"]],
+		}
+		if not self.is_new():
+			filters["name"] = ["!=", self.name]
+		conflicts = frappe.get_all(
+			"Field Service Order",
+			filters=filters,
+			fields=["name", "title", "scheduled_time"],
+			limit=5,
+		)
+		if not conflicts:
+			return
+		lines = ", ".join(
+			f"{c.name} ({c.scheduled_time or _('heure n/d')})" for c in conflicts
+		)
+		frappe.msgprint(
+			_("{0} a déjà {1} autre(s) intervention(s) le {2} : {3}").format(
+				self.assigned_to_name or self.assigned_to,
+				len(conflicts),
+				self.scheduled_date,
+				lines,
+			),
+			title=_("Conflit d'agenda"),
+			indicator="orange",
+		)
+
+	def _warn_low_stock(self):
+		"""G — Avertit (sans bloquer) si une pièce manque de stock dans l'entrepôt."""
+		warnings = []
+		for row in self.parts:
+			if not row.item_code or not row.warehouse or not flt(row.qty):
+				continue
+			available = flt(
+				frappe.db.get_value(
+					"Bin",
+					{"item_code": row.item_code, "warehouse": row.warehouse},
+					"actual_qty",
+				) or 0
+			)
+			if available < flt(row.qty):
+				warnings.append(
+					_("{0} : {1} disponible(s), {2} requis(e)(s) — {3}").format(
+						row.item_name or row.item_code,
+						available,
+						row.qty,
+						row.warehouse,
+					)
+				)
+		if warnings:
+			frappe.msgprint(
+				"<br>".join(warnings),
+				title=_("Stock insuffisant"),
+				indicator="orange",
+			)
+
+	def validate_technicians(self):
+		"""Vérifie les règles d'assignation multi-techniciens définies dans le gabarit."""
+		if not self.technicians:
+			return
+		tpl = None
+		if self.fsm_template:
+			tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+
+		# Limite du nombre de techniciens
+		max_tech = int(tpl.max_technicians) if tpl and tpl.max_technicians else 0
+		if max_tech and len(self.technicians) > max_tech:
+			frappe.throw(
+				_("Ce gabarit autorise au maximum {0} technicien(s) ({1} assigné(s)).").format(
+					max_tech, len(self.technicians)
+				)
+			)
+
+		# Unicité du lead
+		leads = [t for t in self.technicians if t.is_lead]
+		require_lead = tpl.require_lead if tpl else True
+		if len(leads) > 1:
+			frappe.throw(_("Un seul technicien peut être défini comme responsable (lead)."))
+		if require_lead and not leads:
+			frappe.throw(_("Ce gabarit exige qu'un technicien responsable (lead) soit désigné."))
+
+		# Synchronise assigned_to avec le lead
+		if leads:
+			self.assigned_to = leads[0].employee
+			self.assigned_to_name = leads[0].employee_name
+
+	def validate_required_fields_on_close(self):
+		"""Vérifie les champs obligatoires à la clôture (statut Terminé) selon le gabarit."""
+		if self.status != "Terminé":
+			return
+		if not self.fsm_template:
+			return
+		tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
+		if tpl.require_signature and not self.customer_signature:
+			frappe.throw(_("La signature du client est obligatoire pour clôturer cette intervention."))
+		if tpl.require_description_on_close and not self.description:
+			frappe.throw(_("Une description est obligatoire pour clôturer cette intervention."))
+		if tpl.require_parts and not self.parts:
+			frappe.throw(_("Au moins une pièce doit être renseignée pour clôturer cette intervention."))
+
+	def _handle_status_transitions(self):
+		"""Gère en un seul passage (B) la pause SLA et (C partiel) le statut équipement
+		lors des changements de statut sauvegardés via validate."""
+		if self.is_new():
+			return
+		old_status = frappe.db.get_value("Field Service Order", self.name, "status")
+		if old_status == self.status:
+			return
+
+		HOLD = "En attente de pièces"
+
+		# B — Pause / Reprise SLA
+		if self.sla_policy:
+			pause_on_hold = frappe.db.get_value("FSM SLA Policy", self.sla_policy, "pause_on_hold")
+			if pause_on_hold:
+				if self.status == HOLD and old_status != HOLD:
+					# Entrée en attente : enregistre l'heure de suspension
+					self.sla_paused_since = now_datetime()
+				elif old_status == HOLD and self.status != HOLD and self.sla_paused_since:
+					# Sortie d'attente : prolonge les deadlines du temps de suspension
+					paused_hours = time_diff_in_hours(now_datetime(), get_datetime(self.sla_paused_since))
+					if self.sla_response_due:
+						self.sla_response_due = add_to_date(
+							get_datetime(self.sla_response_due), hours=paused_hours
+						)
+					if self.sla_resolution_due:
+						self.sla_resolution_due = add_to_date(
+							get_datetime(self.sla_resolution_due), hours=paused_hours
+						)
+					self.sla_paused_since = None
+
+		# C — Sync statut équipement (transitions passant par validate)
+		if self.fsm_equipment:
+			if self.status == HOLD:
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", HOLD)
+			elif old_status == HOLD and self.status == "En cours":
+				# Retour en cours après attente de pièces
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "En maintenance")
+
 	# ------------------------------------------------------------------ #
 	#  Actions métier                                                      #
 	# ------------------------------------------------------------------ #
@@ -186,7 +349,20 @@ class FieldServiceOrder(Document):
 		if stage:
 			self.fsm_stage = stage
 		self.status = "En cours"
+		# Auto-remplir date_sortie (Datetime) pour les pièces en location sans date encore définie
+		departure_dt = now_datetime()
+		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") == "En location" and not part.date_sortie:
+				part.date_sortie = departure_dt
 		self.save()
+		# C — Équipement → En maintenance dès le démarrage
+		if self.fsm_equipment:
+			frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "En maintenance")
+		# Stock Entry de sortie pour les pièces en location (si pas déjà créé)
+		if not self.rental_stock_entry:
+			rental_se = self._create_rental_departure_entry()
+			if rental_se:
+				self.db_set("rental_stock_entry", rental_se)
 		frappe.msgprint(_("Intervention démarrée le {0}").format(self.actual_start), alert=True)
 
 	@frappe.whitelist()
@@ -204,9 +380,13 @@ class FieldServiceOrder(Document):
 		if stage:
 			self.fsm_stage = stage
 		self.status = "Terminé"
+		self.consolidate_timesheets()
 		self.save()
-		# Mise à jour des dates de maintenance de l'équipement
+		# C — Équipement → Actif à la clôture + mise à jour dates maintenance
 		if self.fsm_equipment:
+			eq_status = frappe.db.get_value("FSM Equipment", self.fsm_equipment, "status")
+			if eq_status in ("En maintenance", "En attente de pièces"):
+				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "Actif")
 			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
 			eq.update_after_service(str(self.actual_end)[:10])
 		frappe.msgprint(
@@ -229,8 +409,10 @@ class FieldServiceOrder(Document):
 		invoice.company = self.company
 		invoice.field_service_order = self.name
 
-		# Lignes pièces/produits
+		# Lignes pièces consommées
 		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") == "En location":
+				continue
 			invoice.append("items", {
 				"item_code": part.item_code,
 				"item_name": part.item_name,
@@ -240,6 +422,25 @@ class FieldServiceOrder(Document):
 				"rate": part.rate,
 				"amount": part.amount,
 				"warehouse": part.warehouse,
+			})
+
+		# Lignes pièces en location (tarif × durée)
+		for part in self.parts:
+			if getattr(part, "part_type", "Consommée") != "En location":
+				continue
+			duration = _rental_duration(part)
+			unit_label = getattr(part, "rental_unit", None) or "Jour"
+			date_fin = part.date_retour or today()
+			invoice.append("items", {
+				"item_code": part.item_code,
+				"item_name": _("Location — {0}").format(part.item_name),
+				"description": _("Location du {0} au {1} ({2} {3})").format(
+					part.date_sortie or _("?"), date_fin, duration, unit_label
+				),
+				"qty": duration,
+				"uom": unit_label,
+				"rate": flt(part.rental_rate),
+				"amount": flt(part.amount),
 			})
 
 		# Lignes main-d'œuvre (temps facturables)
@@ -266,21 +467,175 @@ class FieldServiceOrder(Document):
 		invoice.insert(ignore_permissions=True)
 		invoice.submit()
 
+		# Stock Entry — consommation des pièces Consommées
+		se_name = self._create_stock_entry_for_parts()
+		# Stock Entry — sortie des pièces En location (si pas déjà créé au démarrage)
+		rental_se = self.rental_stock_entry or self._create_rental_departure_entry()
+
 		invoiced_stage = frappe.db.get_value(
 			"FSM Stage", {"stage_name": "Facturé", "stage_type": "Ordre"}, "name"
 		)
 		self.db_set("invoice", invoice.name)
+		if se_name:
+			self.db_set("stock_entry", se_name)
+		if rental_se and not self.rental_stock_entry:
+			self.db_set("rental_stock_entry", rental_se)
 		self.db_set("status", "Facturé")
 		if invoiced_stage:
 			self.db_set("fsm_stage", invoiced_stage)
 
-		frappe.msgprint(
-			_("Facture {0} créée avec succès.").format(
-				frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
-			),
-			title=_("Facture créée"),
+		msg = _("Facture {0} créée avec succès.").format(
+			frappe.utils.get_link_to_form("Sales Invoice", invoice.name)
 		)
+		if se_name:
+			msg += "<br>" + _("Sortie stock (consommation) : {0}").format(
+				frappe.utils.get_link_to_form("Stock Entry", se_name)
+			)
+		if rental_se:
+			msg += "<br>" + _("Sortie stock (location) : {0}").format(
+				frappe.utils.get_link_to_form("Stock Entry", rental_se)
+			)
+		frappe.msgprint(msg, title=_("Facturation terminée"))
 		return invoice.name
+
+	@frappe.whitelist()
+	def consolidate_timesheets(self):
+		"""Importe les feuilles de temps des techniciens secondaires dans l'ordre."""
+		pending = frappe.get_all(
+			"FSM Technician Timesheet",
+			filters={"field_service_order": self.name, "is_consolidated": 0},
+			fields=["name", "employee", "employee_name"],
+		)
+		if not pending:
+			return
+		consolidated_at = now_datetime()
+		for ts_ref in pending:
+			ts = frappe.get_doc("FSM Technician Timesheet", ts_ref.name)
+			for line in ts.timesheets:
+				self.append("timesheets", {
+					"employee": ts.employee,
+					"employee_name": ts.employee_name,
+					"from_time": line.from_time,
+					"to_time": line.to_time,
+					"hours": line.hours,
+					"activity_type": line.activity_type,
+					"is_break": line.is_break,
+					"is_billable": line.is_billable,
+					"billing_hours": line.billing_hours,
+					"hourly_rate": line.hourly_rate,
+					"billing_amount": line.billing_amount,
+					"description": line.description,
+				})
+			frappe.db.set_value(
+				"FSM Technician Timesheet", ts.name,
+				{"is_consolidated": 1, "consolidated_at": consolidated_at},
+				update_modified=False,
+			)
+
+	def _create_stock_entry_for_parts(self):
+		"""Crée un Material Issue pour les pièces Consommées (pas les locations).
+		Retourne le nom du Stock Entry créé, ou None si aucune pièce éligible.
+		"""
+		lines = [
+			p for p in self.parts
+			if p.item_code and p.warehouse and flt(p.qty) > 0
+			and getattr(p, "part_type", "Consommée") != "En location"
+		]
+		if not lines:
+			return None
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Issue"
+		se.company = self.company
+		se.remarks = _("Consommation pièces — Intervention {0}").format(self.name)
+
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"s_warehouse": part.warehouse,
+			})
+
+		se.insert(ignore_permissions=True)
+		se.submit()
+		return se.name
+
+	def _create_rental_departure_entry(self):
+		"""Crée un Material Issue pour la sortie des pièces En location avec entrepôt défini.
+		Retourne le nom du Stock Entry, ou None si aucune pièce éligible.
+		"""
+		lines = [
+			p for p in self.parts
+			if getattr(p, "part_type", "Consommée") == "En location"
+			and p.item_code and p.warehouse and flt(p.qty) > 0
+		]
+		if not lines:
+			return None
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Issue"
+		se.company = self.company
+		se.remarks = _("Sortie location — Intervention {0}").format(self.name)
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"s_warehouse": part.warehouse,
+			})
+		se.insert(ignore_permissions=True)
+		se.submit()
+		return se.name
+
+	@frappe.whitelist()
+	def return_rental_parts(self):
+		"""Enregistre le retour des pièces en location : Material Receipt + mise à jour lignes."""
+		if self.return_stock_entry:
+			frappe.throw(
+				_("Les pièces ont déjà été retournées (écriture {0}).").format(self.return_stock_entry)
+			)
+		lines = [
+			p for p in self.parts
+			if getattr(p, "part_type", "Consommée") == "En location"
+			and not p.is_returned
+			and p.item_code and p.warehouse and flt(p.qty) > 0
+		]
+		if not lines:
+			frappe.throw(_("Aucune pièce en location à retourner pour cette intervention."))
+
+		today_date = today()
+
+		se = frappe.new_doc("Stock Entry")
+		se.stock_entry_type = "Material Receipt"
+		se.company = self.company
+		se.remarks = _("Retour location — Intervention {0}").format(self.name)
+		for part in lines:
+			se.append("items", {
+				"item_code": part.item_code,
+				"qty": part.qty,
+				"uom": part.uom,
+				"t_warehouse": part.warehouse,
+			})
+		se.insert(ignore_permissions=True)
+		se.submit()
+
+		# Mise à jour des lignes et recalcul du montant location
+		for part in lines:
+			part.is_returned = 1
+			if not part.date_retour:
+				part.date_retour = today_date
+
+		self.db_set("return_stock_entry", se.name)
+		self.save()  # déclenche calculate_parts_total → recalcul total_rental_amount avec date_retour
+
+		frappe.msgprint(
+			_("Retour enregistré. Écriture de stock {0} créée.").format(
+				frappe.utils.get_link_to_form("Stock Entry", se.name)
+			),
+			title=_("Retour pièces en location"),
+		)
+		return se.name
 
 	# ------------------------------------------------------------------ #
 	#  Événements Frappe                                                   #
@@ -297,18 +652,18 @@ class FieldServiceOrder(Document):
 			eq.update_after_service(self.actual_end or today())
 
 	def on_cancel(self):
-		cancelled_stage = frappe.db.get_value(
-			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
-		)
-		self.db_set("status", "Annulé")
-		if cancelled_stage:
-			self.db_set("fsm_stage", cancelled_stage)
 		if self.invoice:
 			frappe.throw(
 				_("Impossible d'annuler : la facture {0} est déjà émise. Annulez d'abord la facture.").format(
 					self.invoice
 				)
 			)
+		cancelled_stage = frappe.db.get_value(
+			"FSM Stage", {"stage_name": "Annulé", "stage_type": "Ordre"}, "name"
+		)
+		self.db_set("status", "Annulé")
+		if cancelled_stage:
+			self.db_set("fsm_stage", cancelled_stage)
 
 	def before_print(self, settings=None):
 		"""Prépare les données pour le rapport d'intervention PDF."""
@@ -368,6 +723,36 @@ class FieldServiceOrder(Document):
 	#  Actions métier                                                      #
 	# ------------------------------------------------------------------ #
 
+def _rental_duration(row):
+	"""Calcule la durée de location en unités (Minute/Heure/Jour/Semaine/Mois/Année)."""
+	if not row.date_sortie:
+		return 1
+	start = get_datetime(row.date_sortie)
+	end = get_datetime(row.date_retour) if row.date_retour else now_datetime()
+	total_seconds = max(0.0, (end - start).total_seconds())
+	unit = getattr(row, "rental_unit", None) or "Jour"
+	if unit == "Minute":
+		return max(1, int(total_seconds / 60))
+	if unit == "Heure":
+		return max(1, int(total_seconds / 3600))
+	if unit == "Semaine":
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 7))   # division plafond
+	if unit == "Mois":
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 30))
+	if unit == "Année":
+		days = total_seconds / 86400
+		return max(1, -(-int(days) // 365))
+	# Jour (défaut)
+	return max(1, int(total_seconds / 86400))
+
+
+def _rental_amount(row):
+	"""Calcule le montant d'une ligne location = tarif × durée."""
+	return flt(row.rental_rate) * _rental_duration(row)
+
+
 def _get_closed_stage_names():
 	"""Retourne les noms des stages marqués is_closed=1."""
 	return frappe.db.get_all(
@@ -375,6 +760,101 @@ def _get_closed_stage_names():
 		filters={"is_closed": 1, "stage_type": "Ordre"},
 		pluck="stage_name",
 	)
+
+
+def has_permission(doc, ptype, user):
+	"""Contrôle d'accès FSO pour les techniciens.
+	- Technicien lead (is_lead=1) : accès complet (write/read/…)
+	- Technicien secondaire        : lecture seule
+	- Autres utilisateurs          : None → règles normales Frappe
+	"""
+	if not user:
+		user = frappe.session.user
+	# Recherche dans la table enfant FSM Order Technician
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		return None
+	assignment = frappe.db.get_value(
+		"FSM Order Technician",
+		{"parent": doc.name, "employee": employee},
+		["is_lead"],
+		as_dict=True,
+	)
+	if assignment is None:
+		return None
+	if assignment.is_lead:
+		return True
+	# Technicien secondaire : lecture autorisée, écriture refusée
+	return ptype == "read"
+
+
+def has_permission_timesheet(doc, ptype, user):
+	"""Contrôle d'accès sur FSM Technician Timesheet.
+	Un technicien ne peut lire/écrire que sa propre feuille.
+	"""
+	if not user:
+		user = frappe.session.user
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		return None
+	if doc.employee == employee:
+		return True
+	# Les managers FSM voient tout (None → règles normales)
+	return None
+
+
+@frappe.whitelist()
+def submit_technician_timesheet(order_name, lines):
+	"""Crée ou met à jour la feuille de temps du technicien connecté pour un FSO.
+	`lines` est une liste de dicts (from_time, to_time, activity_type, …).
+	"""
+	import json
+	if isinstance(lines, str):
+		lines = json.loads(lines)
+
+	user = frappe.session.user
+	employee = frappe.db.get_value("Employee", {"user_id": user}, "name")
+	if not employee:
+		frappe.throw(_("Aucun employé associé à votre compte."))
+
+	# Vérifie que l'employé est bien secondaire sur l'ordre
+	assignment = frappe.db.get_value(
+		"FSM Order Technician",
+		{"parent": order_name, "employee": employee},
+		["is_lead"],
+		as_dict=True,
+	)
+	if not assignment:
+		frappe.throw(_("Vous n'êtes pas assigné à l'ordre {0}.").format(order_name))
+
+	# Vérifie le droit de saisie selon le gabarit
+	tpl_name = frappe.db.get_value("Field Service Order", order_name, "fsm_template")
+	if tpl_name:
+		secondary_can = frappe.db.get_value(
+			"FSM Template", tpl_name, "secondary_can_edit_timesheets"
+		)
+		if not assignment.is_lead and not secondary_can:
+			frappe.throw(_("La saisie d'heures n'est pas autorisée pour les techniciens secondaires sur ce gabarit."))
+
+	# Cherche ou crée le FSM Technician Timesheet
+	existing = frappe.db.get_value(
+		"FSM Technician Timesheet",
+		{"field_service_order": order_name, "employee": employee, "is_consolidated": 0},
+		"name",
+	)
+	if existing:
+		ts = frappe.get_doc("FSM Technician Timesheet", existing)
+		ts.timesheets = []  # remplace toutes les lignes
+	else:
+		ts = frappe.new_doc("FSM Technician Timesheet")
+		ts.field_service_order = order_name
+		ts.employee = employee
+
+	for line in lines:
+		ts.append("timesheets", line)
+
+	ts.save(ignore_permissions=True)
+	return ts.name
 
 
 @frappe.whitelist()

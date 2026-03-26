@@ -26,11 +26,15 @@
   "scheduled_date",
   "scheduled_time",
   "scheduled_duration",
+  "section_technicians",
+  "technicians",
   "section_customer",
   "fsm_location",
   "fsm_equipment",
   "customer",
   "customer_name",
+  "project",
+  "project_name",
   "contact_person",
   "contact_mobile",
   "contact_email",
@@ -66,12 +70,18 @@
   "total_timesheet_amount",
   "section_invoice",
   "invoice",
+  "stock_entry",
+  "rental_stock_entry",
+  "return_stock_entry",
+  "total_rental_amount",
   "total_amount",
   "section_signature",
   "customer_signature",
   "customer_feedback",
   "column_break_footer",
-  "amended_from"
+  "amended_from",
+  "is_preventive_maintenance",
+  "sla_escalated"
  ],
  "fields": [
   {
@@ -195,6 +205,18 @@
    "precision": "2"
   },
   {
+   "collapsible": 1,
+   "fieldname": "section_technicians",
+   "fieldtype": "Section Break",
+   "label": "Intervenants"
+  },
+  {
+   "fieldname": "technicians",
+   "fieldtype": "Table",
+   "label": "Techniciens assign\u00e9s",
+   "options": "FSM Order Technician"
+  },
+  {
    "fieldname": "section_customer",
    "fieldtype": "Section Break",
    "label": "Client et lieu d'intervention"
@@ -233,6 +255,22 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Nom du client",
+   "read_only": 1
+  },
+  {
+   "depends_on": "customer",
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Projet",
+   "options": "Project",
+   "search_index": 1
+  },
+  {
+   "fetch_from": "project.project_name",
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "label": "Nom du projet",
    "read_only": 1
   },
   {
@@ -462,6 +500,37 @@
    "read_only": 1
   },
   {
+   "fieldname": "stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock (consommation)",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rental_stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock (sortie location)",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "return_stock_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture de stock (retour location)",
+   "no_copy": 1,
+   "options": "Stock Entry",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_rental_amount",
+   "fieldtype": "Currency",
+   "label": "Total location",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Montant total",
@@ -497,6 +566,23 @@
    "no_copy": 1,
    "options": "Field Service Order",
    "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_preventive_maintenance",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Maintenance pr\u00e9ventive",
+   "no_copy": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "sla_escalated",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "SLA escalad\u00e9",
+   "no_copy": 1,
    "read_only": 1
   }
  ],

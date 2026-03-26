@@ -20,11 +20,18 @@ portal_menu_items = [
 		"route": "/my/interventions",
 		"reference_doctype": "Field Service Order",
 		"role": "Customer",
-	}
+	},
+	{
+		"title": "Mon espace technicien",
+		"route": "/my/technician",
+		"reference_doctype": "Field Service Order",
+		"role": "Field Service User",
+	},
 ]
 
 website_route_rules = [
 	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
+	{"from_route": "/my/technician/<name>", "to_route": "my/technician/detail"},
 ]
 
 # ------------------------------------------------------------------ #
@@ -33,6 +40,7 @@ website_route_rules = [
 
 has_permission = {
 	"Field Service Order": "flow.field_service.doctype.field_service_order.field_service_order.has_permission",
+	"FSM Technician Timesheet": "flow.field_service.doctype.field_service_order.field_service_order.has_permission_timesheet",
 }
 
 # ------------------------------------------------------------------ #
@@ -41,14 +49,17 @@ has_permission = {
 
 scheduler_events = {
 	"cron": {
-		# Chaque matin à 7h : rappel des interventions planifiées du jour
+		# Chaque matin à 7h : rappels techniciens, notifs pré-visite clients, ordres PM
 		"0 7 * * *": [
 			"flow.field_service.tasks.send_daily_reminders",
+			"flow.field_service.tasks.send_previsit_notifications",
+			"flow.field_service.tasks.generate_preventive_maintenance_orders",
 		],
-		# Chaque heure : détection des retards + mise à jour statuts SLA
+		# Chaque heure : retards, SLA, escalades
 		"0 * * * *": [
 			"flow.field_service.tasks.flag_overdue_orders",
 			"flow.field_service.tasks.update_sla_statuses",
+			"flow.field_service.tasks.escalate_breached_sla_orders",
 		],
 	}
 }
@@ -61,6 +72,7 @@ doc_events = {
 	"Field Service Order": {
 		"on_submit": "flow.field_service.tasks.notify_technician_on_assignment",
 		"on_cancel": "flow.field_service.tasks.notify_cancellation",
+		"on_update": "flow.field_service.tasks.notify_customer_on_status_change",
 	}
 }
 
@@ -80,5 +92,9 @@ fixtures = [
 	{
 		"doctype": "Role",
 		"filters": [["role_name", "in", ["Field Service Manager", "Field Service User"]]]
+	},
+	{
+		"doctype": "Print Format",
+		"filters": [["doc_type", "=", "Field Service Order"]]
 	},
 ]

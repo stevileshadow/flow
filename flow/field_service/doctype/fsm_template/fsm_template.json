@@ -21,7 +21,17 @@
   "section_instructions",
   "instructions",
   "section_parts",
-  "default_parts"
+  "default_parts",
+  "section_assignment",
+  "max_technicians",
+  "require_lead",
+  "column_break_assignment",
+  "secondary_can_edit_timesheets",
+  "secondary_can_edit_parts",
+  "section_closure_rules",
+  "require_signature",
+  "require_description_on_close",
+  "require_parts"
  ],
  "fields": [
   {
@@ -123,6 +133,64 @@
    "fieldtype": "Table",
    "label": "Pi\u00e8ces par d\u00e9faut",
    "options": "FSM Template Parts Line"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_assignment",
+   "fieldtype": "Section Break",
+   "label": "R\u00e8gles d'assignation et de saisie"
+  },
+  {
+   "fieldname": "max_technicians",
+   "fieldtype": "Int",
+   "label": "Nombre max. de techniciens",
+   "description": "0 = illimit\u00e9"
+  },
+  {
+   "default": "1",
+   "fieldname": "require_lead",
+   "fieldtype": "Check",
+   "label": "Exiger un technicien responsable (lead)"
+  },
+  {
+   "fieldname": "column_break_assignment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "secondary_can_edit_timesheets",
+   "fieldtype": "Check",
+   "label": "Techniciens secondaires : saisie d'heures autoris\u00e9e"
+  },
+  {
+   "default": "0",
+   "fieldname": "secondary_can_edit_parts",
+   "fieldtype": "Check",
+   "label": "Techniciens secondaires : saisie de pi\u00e8ces autoris\u00e9e"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_closure_rules",
+   "fieldtype": "Section Break",
+   "label": "R\u00e8gles de cl\u00f4ture"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_signature",
+   "fieldtype": "Check",
+   "label": "Signature client obligatoire \u00e0 la cl\u00f4ture"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_description_on_close",
+   "fieldtype": "Check",
+   "label": "Description obligatoire \u00e0 la cl\u00f4ture"
+  },
+  {
+   "default": "0",
+   "fieldname": "require_parts",
+   "fieldtype": "Check",
+   "label": "Au moins une pi\u00e8ce obligatoire \u00e0 la cl\u00f4ture"
   }
  ],
  "links": [],

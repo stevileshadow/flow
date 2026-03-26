@@ -1,0 +1,98 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+<div class="container my-4">
+
+  {% if no_employee %}
+  <div class="alert alert-warning">
+    <strong>Aucun profil employé associé à votre compte.</strong>
+    Contactez votre administrateur pour lier votre compte à un employé.
+  </div>
+  {% else %}
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Mon espace technicien</h2>
+  </div>
+
+  {# Filtres statut #}
+  <div class="mb-3 d-flex flex-wrap gap-2">
+    {% set all_filters = [
+      ("all",       "Toutes"),
+      ("Planifié",  "Planifiées"),
+      ("En cours",  "En cours"),
+      ("Terminé",   "Terminées"),
+    ] %}
+    {% for val, label in all_filters %}
+    <a href="?status={{ val if val != 'all' else '' }}"
+       class="btn btn-sm {{ 'btn-primary' if active_filter == val else 'btn-outline-secondary' }}">
+      {{ label }}
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if orders %}
+  <div class="row row-cols-1 row-cols-md-2 g-3">
+    {% for order in orders %}
+    <div class="col">
+      <div class="card h-100 border-0 shadow-sm">
+        <div class="card-body">
+
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="card-title mb-0">
+              <a href="/my/technician/{{ order.name }}" class="text-decoration-none text-dark">
+                {{ order.title }}
+              </a>
+            </h6>
+            {% if order.is_lead %}
+            <span class="badge bg-success">Responsable</span>
+            {% else %}
+            <span class="badge bg-secondary">Secondaire</span>
+            {% endif %}
+          </div>
+
+          {% set status_colors = {
+            "Nouveau": "secondary", "Planifié": "primary",
+            "En cours": "warning text-dark", "En attente de pièces": "warning text-dark",
+            "Terminé": "success", "Facturé": "info", "Annulé": "danger"
+          } %}
+          <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }} mb-2">
+            {{ order.status }}
+          </span>
+
+          <ul class="list-unstyled small text-muted mb-0">
+            {% if order.scheduled_date %}
+            <li>📅 {{ frappe.format(order.scheduled_date, "Date") }}
+              {% if order.scheduled_time %} à {{ order.scheduled_time[:5] }}{% endif %}
+            </li>
+            {% endif %}
+            {% if order.customer_name %}
+            <li>🏢 {{ order.customer_name }}</li>
+            {% endif %}
+            {% if order.activity_type %}
+            <li>🔧 {{ order.activity_type }}</li>
+            {% endif %}
+            {% if order.fsm_location %}
+            <li>📍 {{ order.fsm_location }}</li>
+            {% endif %}
+          </ul>
+
+        </div>
+        <div class="card-footer bg-transparent border-0 text-end">
+          <a href="/my/technician/{{ order.name }}" class="btn btn-sm btn-light">
+            Voir détails →
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="text-center text-muted py-5">
+    <p class="fs-5">Aucune intervention assignée.</p>
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}

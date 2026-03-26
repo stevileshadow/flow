@@ -5,23 +5,23 @@
    "label": "Interventions par statut"
   }
  ],
- "content": "[{\"id\":\"section_1\",\"type\":\"header\",\"data\":{\"text\":\"Services sur Site\",\"level\":4}},{\"id\":\"section_shortcuts\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Field Service Order\",\"col\":3}},{\"id\":\"section_shortcuts2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Nouveau FSO\",\"col\":3}},{\"id\":\"section_shortcuts3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Field Service Activity Type\",\"col\":3}}]",
+ "content": "[{\"id\":\"section_1\",\"type\":\"header\",\"data\":{\"text\":\"Services sur Site\",\"level\":4}},{\"id\":\"section_shortcuts\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Ordres d'intervention\",\"col\":3}},{\"id\":\"section_shortcuts2\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Interventions urgentes\",\"col\":3}},{\"id\":\"section_shortcuts3\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Types d'activit\\u00e9\",\"col\":3}}]",
  "creation": "2026-03-25 00:00:00.000000",
  "doctype": "Workspace",
  "hide_custom": 0,
- "icon": "fa fa-wrench",
+ "icon": "🛠️",
  "idx": 0,
  "is_hidden": 0,
  "label": "Services sur Site",
  "modified": "2026-03-25 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Field Service",
- "name": "Field Service",
+ "name": "services-sur-site",
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
  "roles": [],
- "sequence_id": 70,
+ "sequence_id": 14,
  "shortcuts": [
   {
    "color": "Blue",
