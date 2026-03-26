@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "mandate_name",
+  "fsm_mandate_template",
   "status",
   "column_break_header",
   "customer",
@@ -25,6 +26,13 @@
   "description"
  ],
  "fields": [
+  {
+   "fieldname": "fsm_mandate_template",
+   "fieldtype": "Link",
+   "label": "Gabarit de mandat",
+   "options": "FSM Mandate Template",
+   "description": "S\u00e9lectionnez un gabarit pour cr\u00e9er automatiquement les bons de travail associ\u00e9s"
+  },
   {
    "bold": 1,
    "fieldname": "mandate_name",

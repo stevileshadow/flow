@@ -1,0 +1,81 @@
+{
+ "actions": [],
+ "creation": "2026-03-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "fsm_template",
+  "activity_type",
+  "priority",
+  "column_break_1",
+  "scheduled_duration",
+  "assigned_technician_role",
+  "description"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Titre du bon de travail",
+   "reqd": 1
+  },
+  {
+   "fieldname": "fsm_template",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Gabarit d\u2019intervention (FSM Template)",
+   "options": "FSM Template"
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Type d\u2019activit\u00e9",
+   "options": "Field Service Activity Type"
+  },
+  {
+   "default": "Normal",
+   "fieldname": "priority",
+   "fieldtype": "Select",
+   "label": "Priorit\u00e9",
+   "options": "Faible\nNormal\nUrgent\nTr\u00e8s urgent"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scheduled_duration",
+   "fieldtype": "Float",
+   "label": "Dur\u00e9e pr\u00e9vue (h)",
+   "precision": "2"
+  },
+  {
+   "fieldname": "assigned_technician_role",
+   "fieldtype": "Select",
+   "label": "Technicien assigné",
+   "options": "\nLead seulement\nTous les techniciens du mandat",
+   "default": "Tous les techniciens du mandat",
+   "description": "D\u00e9finit quels techniciens du mandat sont copi\u00e9s sur ce bon"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description / Instructions sp\u00e9cifiques"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-03-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Mandate Template Order",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

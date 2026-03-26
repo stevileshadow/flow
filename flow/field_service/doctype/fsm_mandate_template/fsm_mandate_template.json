@@ -1,0 +1,85 @@
+{
+ "actions": [],
+ "autoname": "field:template_name",
+ "creation": "2026-03-26 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Setup",
+ "engine": "InnoDB",
+ "field_order": [
+  "template_name",
+  "active",
+  "column_break_header",
+  "description",
+  "section_orders",
+  "template_orders"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "template_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom du gabarit de mandat",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Actif"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description",
+   "description": "Usage interne \u2014 d\u00e9crit les cas d\u2019usage de ce gabarit"
+  },
+  {
+   "fieldname": "section_orders",
+   "fieldtype": "Section Break",
+   "label": "Bons de travail \u00e0 cr\u00e9er automatiquement"
+  },
+  {
+   "fieldname": "template_orders",
+   "fieldtype": "Table",
+   "label": "Mod\u00e8les de bons de travail",
+   "options": "FSM Mandate Template Order",
+   "reqd": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Mandate Template",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "template_name",
+ "sort_order": "ASC",
+ "states": [],
+ "track_changes": 0
+}
