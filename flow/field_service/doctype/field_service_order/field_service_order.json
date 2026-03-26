@@ -14,6 +14,7 @@
   "naming_series",
   "title",
   "fsm_template",
+  "fsm_mandate",
   "fsm_stage",
   "status",
   "priority",
@@ -81,7 +82,8 @@
   "column_break_footer",
   "amended_from",
   "is_preventive_maintenance",
-  "sla_escalated"
+  "sla_escalated",
+  "signature_token"
  ],
  "fields": [
   {
@@ -90,6 +92,23 @@
    "label": "Mod\u00e8le d'intervention",
    "options": "FSM Template",
    "description": "S\u00e9lectionnez un mod\u00e8le pour pr\u00e9-remplir automatiquement ce formulaire"
+  },
+  {
+   "fieldname": "fsm_mandate",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Mandat",
+   "options": "FSM Mandate",
+   "description": "Regroupement de plusieurs bons de travail partageant le m\u00eame client et lieu"
+  },
+  {
+   "fieldname": "signature_token",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Jeton de signature client",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
   },
   {
    "fieldname": "fsm_stage",

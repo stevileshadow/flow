@@ -1,25 +1,42 @@
 {% extends "templates/web.html" %}
 
+{% block head_include %}
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a73e8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+{% endblock %}
+
 {% block page_content %}
 <div class="container my-4">
 
-  {# En-tête #}
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div>
-      <a href="/my/technician" class="text-muted small">← Retour à la liste</a>
-      <h3 class="mb-0 mt-1">{{ order.title }}</h3>
-    </div>
-    {% set status_colors = {
-      "Nouveau": "secondary", "Planifié": "primary",
-      "En cours": "warning text-dark", "En attente de pièces": "warning text-dark",
-      "Terminé": "success", "Facturé": "info", "Annulé": "danger"
-    } %}
-    <span class="badge bg-{{ status_colors.get(order.status, 'secondary') }} fs-6">
-      {{ order.status }}
-    </span>
+  {# ── Barre statut hors ligne ── #}
+  <div id="offline-bar" class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center justify-content-between"
+       style="display:none!important;">
+    <span>⚡ Mode hors ligne — les modifications seront synchronisées à la reconnexion.</span>
+    <span id="pending-count" class="badge bg-warning text-dark ms-2"></span>
+  </div>
+  <div id="sync-bar" class="alert alert-success py-2 px-3 mb-3" style="display:none;">
+    ✓ Synchronisation effectuée.
   </div>
 
-  {# Infos générales #}
+  {# ── En-tête ── #}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <a href="/my/technician" class="text-muted small">← Retour</a>
+      <h3 class="mb-0 mt-1">{{ order.title }}</h3>
+      {% if order.fsm_mandate %}
+      <span class="badge bg-info text-dark small mt-1">
+        Mandat : {{ order.fsm_mandate }}
+      </span>
+      {% endif %}
+    </div>
+    {% set sc = {"Nouveau":"secondary","Planifié":"primary","En cours":"warning text-dark",
+                 "En attente de pièces":"warning text-dark","Terminé":"success","Facturé":"info","Annulé":"danger"} %}
+    <span class="badge bg-{{ sc.get(order.status,'secondary') }} fs-6">{{ order.status }}</span>
+  </div>
+
+  {# ── Infos générales ── #}
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <h5 class="card-title">Informations générales</h5>
@@ -28,200 +45,106 @@
           <ul class="list-unstyled">
             <li><strong>Référence :</strong> {{ order.name }}</li>
             <li><strong>Client :</strong> {{ order.customer_name or "—" }}</li>
+            {% if order.project_name %}<li><strong>Projet :</strong> {{ order.project_name }}</li>{% endif %}
             <li><strong>Lieu :</strong> {{ order.fsm_location or "—" }}</li>
-            <li><strong>Adresse :</strong> {{ order.address_display or "—" }}</li>
+            {% if order.address_display %}<li><strong>Adresse :</strong> {{ order.address_display }}</li>{% endif %}
           </ul>
         </div>
         <div class="col-md-6">
           <ul class="list-unstyled">
             <li><strong>Date planifiée :</strong>
-              {{ frappe.format(order.scheduled_date, "Date") if order.scheduled_date else "—" }}
+              {{ frappe.format(order.scheduled_date,"Date") if order.scheduled_date else "—" }}
               {% if order.scheduled_time %} à {{ order.scheduled_time[:5] }}{% endif %}
             </li>
             <li><strong>Priorité :</strong> {{ order.priority or "Normal" }}</li>
             <li><strong>Activité :</strong> {{ order.activity_type or "—" }}</li>
             {% if is_lead %}
-            <li><span class="badge bg-success">Vous êtes le technicien responsable</span></li>
+            <span class="badge bg-success">Responsable (lead)</span>
             {% else %}
-            <li><span class="badge bg-secondary">Technicien secondaire</span></li>
+            <span class="badge bg-secondary">Technicien secondaire</span>
             {% endif %}
           </ul>
         </div>
       </div>
-
-      {% if order.description %}
-      <hr>
-      <h6>Description</h6>
-      <div>{{ order.description }}</div>
-      {% endif %}
-
-      {% if order.internal_notes %}
-      <hr>
-      <h6>Instructions</h6>
-      <div>{{ order.internal_notes }}</div>
-      {% endif %}
+      {% if order.description %}<hr><h6>Description</h6><div>{{ order.description }}</div>{% endif %}
+      {% if order.internal_notes %}<hr><h6>Instructions</h6><div>{{ order.internal_notes }}</div>{% endif %}
     </div>
   </div>
 
-  {# Saisie des heures #}
-  {% if can_edit_timesheets and order.status in ("Planifié", "En cours") %}
-  <div class="card border-0 shadow-sm mb-4">
+  {# ── Saisie des heures ── #}
+  {% if can_edit_timesheets and order.status in ("Planifié","En cours") %}
+  <div class="card border-0 shadow-sm mb-4" id="section-timesheets">
     <div class="card-body">
-      <h5 class="card-title">Mes heures de travail</h5>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Mes heures de travail</h5>
+        <span class="badge bg-secondary" id="ts-autosave-badge" style="display:none;">Sauvegarde auto…</span>
+      </div>
 
       <div id="timesheet-lines">
         {% for line in my_timesheet_lines %}
         <div class="row g-2 mb-2 timesheet-row">
-          <div class="col-md-3">
-            <label class="form-label small">Début</label>
+          <div class="col-6 col-md-3">
+            <label class="form-label small mb-0">Début</label>
             <input type="datetime-local" class="form-control form-control-sm ts-from"
               value="{{ line.from_time[:16] if line.from_time else '' }}">
           </div>
-          <div class="col-md-3">
-            <label class="form-label small">Fin</label>
+          <div class="col-6 col-md-3">
+            <label class="form-label small mb-0">Fin</label>
             <input type="datetime-local" class="form-control form-control-sm ts-to"
               value="{{ line.to_time[:16] if line.to_time else '' }}">
           </div>
-          <div class="col-md-2">
-            <label class="form-label small">Type</label>
+          <div class="col-6 col-md-2">
+            <label class="form-label small mb-0">Activité</label>
             <input type="text" class="form-control form-control-sm ts-activity"
               placeholder="ex: Installation" value="{{ line.activity_type or '' }}">
           </div>
-          <div class="col-md-2 d-flex align-items-end gap-2">
+          <div class="col-6 col-md-2 d-flex align-items-end gap-3 pb-1">
             <div class="form-check">
-              <input class="form-check-input ts-break" type="checkbox"
-                {{ 'checked' if line.is_break else '' }}>
+              <input class="form-check-input ts-break" type="checkbox" {{ 'checked' if line.is_break else '' }}>
               <label class="form-check-label small">Pause</label>
             </div>
             <div class="form-check">
-              <input class="form-check-input ts-billable" type="checkbox"
-                {{ 'checked' if line.is_billable else '' }}>
+              <input class="form-check-input ts-billable" type="checkbox" {{ 'checked' if line.is_billable else '' }}>
               <label class="form-check-label small">Fact.</label>
             </div>
           </div>
-          <div class="col-md-2 d-flex align-items-end">
+          <div class="col-12 col-md-2">
+            <label class="form-label small mb-0">Remarque</label>
             <input type="text" class="form-control form-control-sm ts-desc"
-              placeholder="Remarque" value="{{ line.description or '' }}">
+              placeholder="Optionnel" value="{{ line.description or '' }}">
           </div>
         </div>
         {% endfor %}
       </div>
 
-      <button class="btn btn-outline-secondary btn-sm mt-2" id="btn-add-line">
-        + Ajouter une ligne
-      </button>
-
-      <div class="mt-3">
-        <button class="btn btn-primary" id="btn-save-timesheet">
-          Enregistrer mes heures
-        </button>
-        <span id="ts-feedback" class="ms-2 small text-success" style="display:none;"></span>
+      <div class="d-flex gap-2 mt-2 mb-3">
+        <button class="btn btn-outline-secondary btn-sm" id="btn-add-line">+ Ligne</button>
+        <button class="btn btn-outline-primary btn-sm" id="btn-start-now">⏱ Démarrer maintenant</button>
       </div>
+      <button class="btn btn-primary" id="btn-save-timesheet">Enregistrer mes heures</button>
+      <span id="ts-feedback" class="ms-2 small text-success" style="display:none;"></span>
     </div>
   </div>
-
-  <script>
-  (function() {
-    function rowTemplate() {
-      return `<div class="row g-2 mb-2 timesheet-row">
-        <div class="col-md-3">
-          <label class="form-label small">Début</label>
-          <input type="datetime-local" class="form-control form-control-sm ts-from">
-        </div>
-        <div class="col-md-3">
-          <label class="form-label small">Fin</label>
-          <input type="datetime-local" class="form-control form-control-sm ts-to">
-        </div>
-        <div class="col-md-2">
-          <label class="form-label small">Type</label>
-          <input type="text" class="form-control form-control-sm ts-activity" placeholder="ex: Installation">
-        </div>
-        <div class="col-md-2 d-flex align-items-end gap-2">
-          <div class="form-check">
-            <input class="form-check-input ts-break" type="checkbox">
-            <label class="form-check-label small">Pause</label>
-          </div>
-          <div class="form-check">
-            <input class="form-check-input ts-billable" type="checkbox">
-            <label class="form-check-label small">Fact.</label>
-          </div>
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-          <input type="text" class="form-control form-control-sm ts-desc" placeholder="Remarque">
-        </div>
-      </div>`;
-    }
-
-    document.getElementById('btn-add-line').addEventListener('click', function() {
-      document.getElementById('timesheet-lines').insertAdjacentHTML('beforeend', rowTemplate());
-    });
-
-    document.getElementById('btn-save-timesheet').addEventListener('click', function() {
-      var lines = [];
-      document.querySelectorAll('.timesheet-row').forEach(function(row) {
-        var from = row.querySelector('.ts-from').value;
-        var to = row.querySelector('.ts-to').value;
-        if (!from) return;
-        lines.push({
-          from_time: from.replace('T', ' ') + ':00',
-          to_time: to ? to.replace('T', ' ') + ':00' : null,
-          activity_type: row.querySelector('.ts-activity').value,
-          is_break: row.querySelector('.ts-break').checked ? 1 : 0,
-          is_billable: row.querySelector('.ts-billable').checked ? 1 : 0,
-          description: row.querySelector('.ts-desc').value,
-        });
-      });
-
-      fetch('/api/method/flow.field_service.doctype.field_service_order.field_service_order.submit_technician_timesheet', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': frappe.csrf_token},
-        body: JSON.stringify({order_name: '{{ order.name }}', lines: lines})
-      })
-      .then(r => r.json())
-      .then(function(res) {
-        if (res.message) {
-          var fb = document.getElementById('ts-feedback');
-          fb.textContent = 'Heures enregistrées.';
-          fb.style.display = 'inline';
-          setTimeout(function() { fb.style.display = 'none'; }, 3000);
-        }
-      })
-      .catch(function() {
-        alert("Erreur lors de l'enregistrement des heures.");
-      });
-    });
-  })();
-  </script>
-
   {% elif not can_edit_timesheets %}
-  <div class="alert alert-info">
-    La saisie d'heures n'est pas autorisée pour les techniciens secondaires sur ce gabarit.
-  </div>
+  <div class="alert alert-info">La saisie d'heures n'est pas autorisée pour les techniciens secondaires sur ce gabarit.</div>
   {% endif %}
 
-  {# Heures consolidées (lecture seule) #}
+  {# ── Heures consolidées (lecture seule) ── #}
   {% if order.timesheets %}
   <div class="card border-0 shadow-sm mb-4">
     <div class="card-body">
       <h5 class="card-title">Heures enregistrées sur l'ordre</h5>
       <div class="table-responsive">
-        <table class="table table-sm">
-          <thead>
-            <tr>
-              <th>Technicien</th>
-              <th>Début</th>
-              <th>Fin</th>
-              <th>Heures</th>
-              <th>Type</th>
-              <th>Pause</th>
-            </tr>
+        <table class="table table-sm table-hover">
+          <thead class="table-light">
+            <tr><th>Technicien</th><th>Début</th><th>Fin</th><th>H.</th><th>Type</th><th>Pause</th></tr>
           </thead>
           <tbody>
             {% for ts in order.timesheets %}
             <tr>
               <td>{{ ts.employee_name or ts.employee or "—" }}</td>
-              <td>{{ frappe.format(ts.from_time, "Datetime") if ts.from_time else "—" }}</td>
-              <td>{{ frappe.format(ts.to_time, "Datetime") if ts.to_time else "—" }}</td>
+              <td>{{ frappe.format(ts.from_time,"Datetime") if ts.from_time else "—" }}</td>
+              <td>{{ frappe.format(ts.to_time,"Datetime") if ts.to_time else "—" }}</td>
               <td>{{ ts.hours or "—" }}</td>
               <td>{{ ts.activity_type or "—" }}</td>
               <td>{{ "Oui" if ts.is_break else "Non" }}</td>
@@ -234,5 +157,599 @@
   </div>
   {% endif %}
 
+  {# ── Pièces jointes ── #}
+  {% if order.status in ("Planifié","En cours","Terminé") %}
+  <div class="card border-0 shadow-sm mb-4" id="section-attachments">
+    <div class="card-body">
+      <h5 class="card-title">Pièces jointes</h5>
+      <p class="text-muted small">Photos, rapports, bons de livraison… (JPG, PNG, PDF — max 10 Mo par fichier)</p>
+
+      {# Liste des pièces jointes existantes #}
+      <div id="existing-attachments">
+        {% set attachments = frappe.get_all("File",
+          filters={"attached_to_doctype":"Field Service Order","attached_to_name":order.name},
+          fields=["name","file_name","file_url","file_size","is_private"]) %}
+        {% if attachments %}
+        <div class="list-group list-group-flush mb-3">
+          {% for f in attachments %}
+          <a href="{{ f.file_url }}" target="_blank"
+             class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2">
+            <span>
+              {% if f.file_name.lower().endswith(('.jpg','.jpeg','.png','.gif')) %}📷{% elif f.file_name.lower().endswith('.pdf') %}📄{% else %}📎{% endif %}
+              {{ f.file_name }}
+            </span>
+            <span class="text-muted small">{{ (f.file_size / 1024)|round(1) }} Ko</span>
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+
+      <div id="upload-area" class="border-2 border-dashed rounded p-3 text-center mb-3"
+           style="border:2px dashed #ccc;cursor:pointer;"
+           ondragover="event.preventDefault()" ondrop="handleDrop(event)">
+        <p class="mb-1">Glissez des fichiers ici ou</p>
+        <label class="btn btn-outline-secondary btn-sm mb-0">
+          Choisir des fichiers
+          <input type="file" id="file-input" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+                 style="display:none;" onchange="handleFileSelect(event)">
+        </label>
+      </div>
+
+      <div id="upload-queue" class="list-group list-group-flush mb-2"></div>
+      <div id="upload-feedback" class="small text-success" style="display:none;"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ── Signature client (si lead) ── #}
+  {% if is_lead and order.status in ("En cours","Terminé") %}
+  <div class="card border-0 shadow-sm mb-4" id="section-signature">
+    <div class="card-body">
+      <h5 class="card-title">Signature client</h5>
+
+      {% if order.customer_signature %}
+      <div class="mb-3">
+        <p class="text-success small mb-1">✓ Signature enregistrée</p>
+        <img src="{{ order.customer_signature }}" alt="Signature client"
+             style="max-height:120px;border:1px solid #dee2e6;border-radius:4px;padding:4px;">
+      </div>
+      <button class="btn btn-outline-warning btn-sm" id="btn-resign">Nouvelle signature</button>
+      {% endif %}
+
+      <div id="signature-area" {% if order.customer_signature %}style="display:none;"{% endif %}>
+        <div class="row g-2 mb-3">
+          <div class="col-12 col-md-6">
+            <button class="btn btn-outline-primary w-100" id="btn-sign-here">
+              ✏️ Signer sur tablette (ici)
+            </button>
+          </div>
+          <div class="col-12 col-md-6">
+            <button class="btn btn-outline-secondary w-100" id="btn-send-signature-link">
+              📧 Envoyer lien au client
+            </button>
+          </div>
+        </div>
+
+        {# Pad de signature ici (affiché à la demande) #}
+        <div id="signature-pad-container" style="display:none;">
+          <p class="text-muted small">Signez dans le cadre ci-dessous :</p>
+          <div class="border rounded bg-light mb-2" style="touch-action:none;">
+            <canvas id="sig-canvas" width="600" height="180"
+              style="display:block;width:100%;height:180px;cursor:crosshair;"></canvas>
+          </div>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btn-sig-clear">Effacer</button>
+            <button class="btn btn-success btn-sm" id="btn-sig-save">Valider la signature</button>
+          </div>
+          <div id="sig-save-feedback" class="mt-2 small" style="display:none;"></div>
+        </div>
+
+        <div id="link-feedback" class="mt-2 small text-muted" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
+
+{# ────────────────────────── Scripts ────────────────────────────────────────── #}
+<script>
+'use strict';
+
+const ORDER_NAME = '{{ order.name }}';
+const CSRF_TOKEN = frappe.csrf_token;
+const API_BASE = '/api/method';
+const DB_NAME = 'fsm-offline';
+const STORE_NAME = 'pending';
+
+// ─── IndexedDB helper ──────────────────────────────────────────────────────
+
+let idb = null;
+
+async function openIDB() {
+  if (idb) return idb;
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+      }
+    };
+    req.onsuccess = e => { idb = e.target.result; resolve(idb); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function enqueue(item) {
+  const db = await openIDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).add(item);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getPendingCount() {
+  const db = await openIDB();
+  return new Promise(resolve => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).count();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(0);
+  });
+}
+
+async function flushQueue() {
+  const db = await openIDB();
+  const items = await new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const req = tx.objectStore(STORE_NAME).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+
+  let synced = 0;
+  for (const item of items) {
+    try {
+      const resp = await fetch(item.url, {
+        method: item.method || 'POST',
+        headers: item.headers,
+        body: item.body,
+      });
+      if (resp.ok) {
+        await new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, 'readwrite');
+          tx.objectStore(STORE_NAME).delete(item.id);
+          tx.oncomplete = resolve;
+        });
+        synced++;
+      }
+    } catch { /* laisse en queue */ }
+  }
+  return synced;
+}
+
+// ─── Statut hors ligne ─────────────────────────────────────────────────────
+
+async function updateOfflineBar() {
+  const online = navigator.onLine;
+  const bar = document.getElementById('offline-bar');
+  const badge = document.getElementById('pending-count');
+  if (!online) {
+    bar.style.display = 'flex';
+    const count = await getPendingCount();
+    badge.textContent = count > 0 ? count + ' en attente' : '';
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+window.addEventListener('online', async () => {
+  updateOfflineBar();
+  const synced = await flushQueue();
+  if (synced > 0) {
+    const sb = document.getElementById('sync-bar');
+    sb.textContent = '✓ ' + synced + ' élément(s) synchronisé(s).';
+    sb.style.display = 'block';
+    setTimeout(() => sb.style.display = 'none', 4000);
+  }
+  // Demande sync au service worker si disponible
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(sw => {
+      if (sw.sync) sw.sync.register('fsm-sync').catch(() => {});
+    });
+  }
+});
+
+window.addEventListener('offline', updateOfflineBar);
+updateOfflineBar();
+
+// Écoute les messages du SW (synchro réussie)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.type === 'SYNC_SUCCESS') {
+      const sb = document.getElementById('sync-bar');
+      sb.textContent = '✓ Synchronisation effectuée.';
+      sb.style.display = 'block';
+      setTimeout(() => sb.style.display = 'none', 3000);
+    }
+  });
+}
+
+// ─── Autosave localStorage ─────────────────────────────────────────────────
+
+const AUTOSAVE_KEY = 'fsm-ts-' + ORDER_NAME;
+
+function collectTimesheetLines() {
+  const lines = [];
+  document.querySelectorAll('.timesheet-row').forEach(row => {
+    const from = row.querySelector('.ts-from').value;
+    if (!from) return;
+    const to = row.querySelector('.ts-to').value;
+    lines.push({
+      from_time: from.replace('T', ' ') + ':00',
+      to_time: to ? to.replace('T', ' ') + ':00' : null,
+      activity_type: row.querySelector('.ts-activity').value,
+      is_break: row.querySelector('.ts-break').checked ? 1 : 0,
+      is_billable: row.querySelector('.ts-billable').checked ? 1 : 0,
+      description: row.querySelector('.ts-desc').value,
+    });
+  });
+  return lines;
+}
+
+function autosave() {
+  const lines = collectTimesheetLines();
+  localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(lines));
+}
+
+function restoreAutosave() {
+  const saved = localStorage.getItem(AUTOSAVE_KEY);
+  if (!saved) return;
+  try {
+    const lines = JSON.parse(saved);
+    if (!lines.length) return;
+    const container = document.getElementById('timesheet-lines');
+    // Restaure uniquement si le formulaire est vide
+    if (container && !container.querySelectorAll('.ts-from').length) {
+      lines.forEach(line => addTimesheetRow(line));
+    }
+  } catch {}
+}
+
+// ─── Gestion des lignes de timesheet ──────────────────────────────────────
+
+function addTimesheetRow(data) {
+  const container = document.getElementById('timesheet-lines');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'row g-2 mb-2 timesheet-row';
+  const fromVal = data && data.from_time ? data.from_time.replace(' ', 'T').slice(0,16) : '';
+  const toVal   = data && data.to_time   ? data.to_time.replace(' ', 'T').slice(0,16) : '';
+  div.innerHTML = `
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-0">Début</label>
+      <input type="datetime-local" class="form-control form-control-sm ts-from" value="${fromVal}">
+    </div>
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-0">Fin</label>
+      <input type="datetime-local" class="form-control form-control-sm ts-to" value="${toVal}">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-0">Activité</label>
+      <input type="text" class="form-control form-control-sm ts-activity" placeholder="ex: Installation" value="${data && data.activity_type || ''}">
+    </div>
+    <div class="col-6 col-md-2 d-flex align-items-end gap-3 pb-1">
+      <div class="form-check">
+        <input class="form-check-input ts-break" type="checkbox" ${data && data.is_break ? 'checked' : ''}>
+        <label class="form-check-label small">Pause</label>
+      </div>
+      <div class="form-check">
+        <input class="form-check-input ts-billable" type="checkbox" ${data && data.is_billable ? 'checked' : ''}>
+        <label class="form-check-label small">Fact.</label>
+      </div>
+    </div>
+    <div class="col-12 col-md-2">
+      <label class="form-label small mb-0">Remarque</label>
+      <input type="text" class="form-control form-control-sm ts-desc" placeholder="Optionnel" value="${data && data.description || ''}">
+    </div>`;
+  container.appendChild(div);
+  div.querySelectorAll('input').forEach(inp => inp.addEventListener('change', autosave));
+}
+
+const btnAddLine = document.getElementById('btn-add-line');
+if (btnAddLine) btnAddLine.addEventListener('click', () => { addTimesheetRow(null); autosave(); });
+
+const btnStartNow = document.getElementById('btn-start-now');
+if (btnStartNow) btnStartNow.addEventListener('click', () => {
+  const now = new Date();
+  const local = new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  addTimesheetRow({ from_time: local.replace('T', ' ') + ':00' });
+  autosave();
+});
+
+// Attache autosave aux champs existants
+document.querySelectorAll('.timesheet-row input').forEach(inp =>
+  inp.addEventListener('change', autosave)
+);
+
+// ─── Sauvegarde des heures ─────────────────────────────────────────────────
+
+async function saveTimesheet() {
+  const lines = collectTimesheetLines();
+  const payload = JSON.stringify({
+    order_name: ORDER_NAME,
+    lines: lines,
+  });
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Frappe-CSRF-Token': CSRF_TOKEN,
+  };
+  const url = `${API_BASE}/flow.field_service.doctype.field_service_order.field_service_order.submit_technician_timesheet`;
+
+  if (!navigator.onLine) {
+    await enqueue({ url, method: 'POST', headers, body: payload, tag: 'timesheet-' + ORDER_NAME });
+    updateOfflineBar();
+    return { queued: true };
+  }
+
+  const resp = await fetch(url, { method: 'POST', headers, body: payload });
+  if (resp.ok) {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    return { ok: true };
+  }
+  throw new Error('HTTP ' + resp.status);
+}
+
+const btnSave = document.getElementById('btn-save-timesheet');
+if (btnSave) {
+  btnSave.addEventListener('click', async () => {
+    btnSave.disabled = true;
+    const fb = document.getElementById('ts-feedback');
+    try {
+      const result = await saveTimesheet();
+      fb.textContent = result.queued
+        ? '⏳ En attente de connexion — sera synchronisé automatiquement.'
+        : '✓ Heures enregistrées.';
+      fb.className = result.queued ? 'ms-2 small text-warning' : 'ms-2 small text-success';
+      fb.style.display = 'inline';
+      setTimeout(() => fb.style.display = 'none', 4000);
+    } catch(e) {
+      fb.textContent = 'Erreur : ' + e.message;
+      fb.className = 'ms-2 small text-danger';
+      fb.style.display = 'inline';
+    } finally {
+      btnSave.disabled = false;
+    }
+  });
+}
+
+// Restauration autosave au chargement
+restoreAutosave();
+
+// ─── Upload de fichiers ────────────────────────────────────────────────────
+
+function handleFileSelect(e) { uploadFiles(Array.from(e.target.files)); }
+function handleDrop(e) {
+  e.preventDefault();
+  uploadFiles(Array.from(e.dataTransfer.files));
+}
+
+async function uploadFiles(files) {
+  const queue = document.getElementById('upload-queue');
+  for (const file of files) {
+    if (file.size > 10 * 1024 * 1024) {
+      alert(`${file.name} dépasse la limite de 10 Mo.`);
+      continue;
+    }
+    const item = document.createElement('div');
+    item.className = 'list-group-item d-flex align-items-center gap-2';
+    item.innerHTML = `<span class="flex-grow-1">${file.name}</span>
+      <div class="progress flex-grow-1" style="height:8px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width:0%"></div>
+      </div>
+      <span class="small text-muted ms-2">0%</span>`;
+    if (queue) queue.appendChild(item);
+
+    const bar = item.querySelector('.progress-bar');
+    const pct = item.querySelector('.small');
+
+    if (!navigator.onLine) {
+      // Stocke en IndexedDB pour sync ultérieure
+      const reader = new FileReader();
+      reader.onload = async e => {
+        await enqueue({
+          tag: 'upload-' + file.name,
+          url: '/api/method/upload_file',
+          method: 'POST',
+          headers: { 'X-Frappe-CSRF-Token': CSRF_TOKEN },
+          body: JSON.stringify({
+            filename: file.name,
+            doctype: 'Field Service Order',
+            docname: ORDER_NAME,
+            filedata: e.target.result,
+            is_private: 0,
+          }),
+          isUpload: true,
+        });
+        bar.style.width = '100%';
+        bar.className = 'progress-bar bg-warning';
+        pct.textContent = 'Hors ligne — en attente';
+        updateOfflineBar();
+      };
+      reader.readAsDataURL(file);
+      continue;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+    formData.append('doctype', 'Field Service Order');
+    formData.append('docname', ORDER_NAME);
+    formData.append('is_private', '0');
+
+    try {
+      const resp = await fetch('/api/method/upload_file', {
+        method: 'POST',
+        headers: { 'X-Frappe-CSRF-Token': CSRF_TOKEN },
+        body: formData,
+      });
+      if (resp.ok) {
+        bar.style.width = '100%';
+        bar.className = 'progress-bar bg-success';
+        pct.textContent = '✓';
+      } else {
+        throw new Error('HTTP ' + resp.status);
+      }
+    } catch(e) {
+      bar.className = 'progress-bar bg-danger';
+      pct.textContent = 'Erreur';
+    }
+  }
+}
+
+// ─── Signature sur tablette ────────────────────────────────────────────────
+
+const btnSignHere = document.getElementById('btn-sign-here');
+const btnResign   = document.getElementById('btn-resign');
+const padContainer = document.getElementById('signature-pad-container');
+const sigCanvas   = document.getElementById('sig-canvas');
+
+if (btnSignHere) btnSignHere.addEventListener('click', () => {
+  padContainer.style.display = 'block';
+  btnSignHere.style.display = 'none';
+  initSignaturePad();
+});
+if (btnResign) btnResign.addEventListener('click', () => {
+  document.getElementById('signature-area').style.display = 'block';
+  btnResign.style.display = 'none';
+  padContainer.style.display = 'none';
+});
+
+let sigPadInitialized = false;
+
+function initSignaturePad() {
+  if (sigPadInitialized || !sigCanvas) return;
+  sigPadInitialized = true;
+  const ctx = sigCanvas.getContext('2d');
+  let drawing = false, hasData = false;
+
+  function resizeCanvas() {
+    const rect = sigCanvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    sigCanvas.width = rect.width * dpr;
+    sigCanvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+  resizeCanvas();
+
+  function getPos(e) {
+    const rect = sigCanvas.getBoundingClientRect();
+    if (e.touches) return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  sigCanvas.addEventListener('mousedown', e => { drawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, { passive: false });
+  sigCanvas.addEventListener('mousemove', e => { if(!drawing)return; const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasData=true; });
+  sigCanvas.addEventListener('mouseup', () => drawing=false);
+  sigCanvas.addEventListener('mouseleave', () => drawing=false);
+  sigCanvas.addEventListener('touchstart', e => { e.preventDefault(); drawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); }, { passive: false });
+  sigCanvas.addEventListener('touchmove', e => { if(!drawing)return; e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); hasData=true; }, { passive: false });
+  sigCanvas.addEventListener('touchend', () => drawing=false);
+
+  document.getElementById('btn-sig-clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+    hasData = false;
+  });
+
+  document.getElementById('btn-sig-save').addEventListener('click', async () => {
+    if (!hasData) { alert('Veuillez signer avant de valider.'); return; }
+    const sigData = sigCanvas.toDataURL('image/png');
+    const btn = document.getElementById('btn-sig-save');
+    btn.disabled = true;
+    const fb = document.getElementById('sig-save-feedback');
+
+    try {
+      const resp = await fetch(
+        `${API_BASE}/frappe.client.set_value`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': CSRF_TOKEN },
+          body: JSON.stringify({
+            doctype: 'Field Service Order',
+            name: ORDER_NAME,
+            fieldname: 'customer_signature',
+            value: sigData,
+          }),
+        }
+      );
+      if (resp.ok) {
+        fb.textContent = '✓ Signature enregistrée.';
+        fb.className = 'mt-2 small text-success';
+        fb.style.display = 'block';
+        // Affiche l'image
+        const img = document.createElement('img');
+        img.src = sigData;
+        img.style.cssText = 'max-height:80px;border:1px solid #dee2e6;border-radius:4px;margin-top:8px;';
+        padContainer.appendChild(img);
+        btn.style.display = 'none';
+      } else {
+        throw new Error('HTTP ' + resp.status);
+      }
+    } catch(e) {
+      fb.textContent = 'Erreur : ' + e.message;
+      fb.className = 'mt-2 small text-danger';
+      fb.style.display = 'block';
+      btn.disabled = false;
+    }
+  });
+}
+
+// ─── Envoi lien de signature au client ────────────────────────────────────
+
+const btnSendLink = document.getElementById('btn-send-signature-link');
+if (btnSendLink) btnSendLink.addEventListener('click', async () => {
+  btnSendLink.disabled = true;
+  const fb = document.getElementById('link-feedback');
+  try {
+    const resp = await fetch(
+      `${API_BASE}/frappe.client.run_doc_method`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Frappe-CSRF-Token': CSRF_TOKEN },
+        body: JSON.stringify({
+          dt: 'Field Service Order',
+          dn: ORDER_NAME,
+          method: 'generate_customer_signature_link',
+        }),
+      }
+    );
+    const data = await resp.json();
+    const link = data.message;
+    fb.innerHTML = link
+      ? `✓ Lien envoyé au client. <br><small class="text-muted">${link}</small>`
+      : '✓ Lien généré (client sans email configuré).';
+    fb.className = 'mt-2 small text-success';
+    fb.style.display = 'block';
+  } catch(e) {
+    fb.textContent = 'Erreur : ' + e.message;
+    fb.className = 'mt-2 small text-danger';
+    fb.style.display = 'block';
+    btnSendLink.disabled = false;
+  }
+});
+
+// ─── Enregistrement du Service Worker ─────────────────────────────────────
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/my/technician' }).catch(() => {});
+}
+</script>
+
 {% endblock %}

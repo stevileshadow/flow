@@ -32,6 +32,7 @@ portal_menu_items = [
 website_route_rules = [
 	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
 	{"from_route": "/my/technician/<name>", "to_route": "my/technician/detail"},
+	{"from_route": "/my/signature", "to_route": "my/signature"},
 ]
 
 # ------------------------------------------------------------------ #

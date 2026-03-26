@@ -1,0 +1,159 @@
+{
+ "actions": [],
+ "autoname": "FSM-MAN-.YYYY.-.####",
+ "creation": "2026-03-26 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "mandate_name",
+  "status",
+  "column_break_header",
+  "customer",
+  "customer_name",
+  "section_project",
+  "project_name",
+  "company",
+  "column_break_project",
+  "fsm_location",
+  "scheduled_date",
+  "section_technicians",
+  "technicians",
+  "section_orders",
+  "orders",
+  "section_notes",
+  "description"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "mandate_name",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Nom du mandat",
+   "reqd": 1
+  },
+  {
+   "default": "Brouillon",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Statut",
+   "options": "Brouillon\nEn cours\nTermin\u00e9"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Client",
+   "options": "Customer"
+  },
+  {
+   "fetch_from": "customer.customer_name",
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Nom du client",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_project",
+   "fieldtype": "Section Break",
+   "label": "Projet"
+  },
+  {
+   "fieldname": "project_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom du projet"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company",
+   "remember_last_selected_value": 1
+  },
+  {
+   "fieldname": "column_break_project",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fsm_location",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Lieu d'intervention",
+   "options": "FSM Location"
+  },
+  {
+   "fieldname": "scheduled_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Date pr\u00e9vue"
+  },
+  {
+   "fieldname": "section_technicians",
+   "fieldtype": "Section Break",
+   "label": "Ressources humaines assign\u00e9es"
+  },
+  {
+   "fieldname": "technicians",
+   "fieldtype": "Table",
+   "label": "Techniciens",
+   "options": "FSM Order Technician"
+  },
+  {
+   "fieldname": "section_orders",
+   "fieldtype": "Section Break",
+   "label": "Bons de travail du mandat"
+  },
+  {
+   "fieldname": "orders",
+   "fieldtype": "Table",
+   "label": "Ordres d'intervention",
+   "options": "FSM Mandate Order"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description du mandat"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Mandate",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "scheduled_date",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

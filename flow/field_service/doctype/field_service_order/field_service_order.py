@@ -32,8 +32,11 @@ class FieldServiceOrder(Document):
 		self._warn_low_stock()
 
 	def apply_template_on_new(self):
-		"""Applique le modèle uniquement lors de la création (doc is new)."""
-		if not self.fsm_template or not self.is_new():
+		"""Applique le modèle et le mandat uniquement lors de la création (doc is new)."""
+		if not self.is_new():
+			return
+		self._apply_mandate()
+		if not self.fsm_template:
 			return
 		tpl = frappe.get_cached_doc("FSM Template", self.fsm_template)
 		if tpl.activity_type and not self.activity_type:
@@ -60,6 +63,31 @@ class FieldServiceOrder(Document):
 				"rental_rate": getattr(part, "rental_rate", None),
 				"rental_unit": getattr(part, "rental_unit", None) or "Jour",
 			})
+
+	def _apply_mandate(self):
+		"""Pré-remplit depuis le mandat (client, lieu, date, techs, projet)."""
+		if not self.fsm_mandate:
+			return
+		m = frappe.get_cached_doc("FSM Mandate", self.fsm_mandate)
+		if m.customer and not self.customer:
+			self.customer = m.customer
+			self.customer_name = m.customer_name
+		if m.project_name and not self.project_name:
+			self.project_name = m.project_name
+		if m.company and not self.company:
+			self.company = m.company
+		if m.fsm_location and not self.fsm_location:
+			self.fsm_location = m.fsm_location
+		if m.scheduled_date and not self.scheduled_date:
+			self.scheduled_date = m.scheduled_date
+		if m.technicians and not self.technicians:
+			for t in m.technicians:
+				self.append("technicians", {
+					"employee": t.employee,
+					"employee_name": t.employee_name,
+					"is_lead": t.is_lead,
+					"user_id": t.user_id,
+				})
 
 	def prefill_from_equipment(self):
 		"""Auto-remplit lieu et client depuis l'équipement sélectionné."""
@@ -499,6 +527,31 @@ class FieldServiceOrder(Document):
 		return invoice.name
 
 	@frappe.whitelist()
+	def generate_customer_signature_link(self):
+		"""Génère un lien de signature unique et l'envoie au client par email."""
+		import uuid
+		if not self.customer:
+			frappe.throw(_("Aucun client associé à cet ordre."))
+		token = uuid.uuid4().hex
+		self.db_set("signature_token", token, update_modified=False)
+		link = f"{frappe.utils.get_url()}/my/signature?token={token}"
+		email = self.contact_email or None
+		if not email and self.contact_person:
+			email = frappe.db.get_value("Contact", self.contact_person, "email_id")
+		if email:
+			frappe.sendmail(
+				recipients=[email],
+				subject=_("Signature requise — Intervention {0}").format(self.name),
+				message=_(
+					"Bonjour {0},\n\n"
+					"Veuillez signer le rapport d'intervention en cliquant sur le lien ci-dessous :\n\n"
+					"  {1}\n\n"
+					"Ce lien est valable 7 jours.\n\nMerci."
+				).format(self.customer_name or _("Client"), link),
+			)
+		return link
+
+	@frappe.whitelist()
 	def consolidate_timesheets(self):
 		"""Importe les feuilles de temps des techniciens secondaires dans l'ordre."""
 		pending = frappe.get_all(
@@ -786,6 +839,26 @@ def has_permission(doc, ptype, user):
 		return True
 	# Technicien secondaire : lecture autorisée, écriture refusée
 	return ptype == "read"
+
+
+@frappe.whitelist(allow_guest=True)
+def save_customer_signature(token, signature_data):
+	"""Enregistre la signature client à partir d'un lien signé (token).
+	Accessible sans session (allow_guest) — le token fait office d'authentification.
+	"""
+	if not token or not signature_data:
+		frappe.throw(_("Données manquantes."))
+	order_name = frappe.db.get_value(
+		"Field Service Order", {"signature_token": token}, "name"
+	)
+	if not order_name:
+		frappe.throw(_("Lien de signature invalide ou expiré."))
+	frappe.db.set_value(
+		"Field Service Order", order_name,
+		{"customer_signature": signature_data, "signature_token": ""},
+		update_modified=True,
+	)
+	return {"order": order_name, "success": True}
 
 
 def has_permission_timesheet(doc, ptype, user):
