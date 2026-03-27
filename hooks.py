@@ -33,13 +33,19 @@ portal_menu_items = [
 		"reference_doctype": "Field Service Order",
 		"role": "Field Service Manager",
 	},
+	{
+		"title": "Espace fournisseur",
+		"route": "/my/supplier",
+		"role": "Supplier",
+	},
 ]
 
 website_route_rules = [
 	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
-	{"from_route": "/my/technician/<name>", "to_route": "my/technician/detail"},
-	{"from_route": "/my/signature", "to_route": "my/signature"},
-	{"from_route": "/my/decompte", "to_route": "my/decompte"},
+	{"from_route": "/my/technician/<name>",    "to_route": "my/technician/detail"},
+	{"from_route": "/my/signature",            "to_route": "my/signature"},
+	{"from_route": "/my/decompte",             "to_route": "my/decompte"},
+	{"from_route": "/my/supplier",             "to_route": "my/supplier"},
 ]
 
 # ------------------------------------------------------------------ #
@@ -93,20 +99,40 @@ doc_events = {
 # ------------------------------------------------------------------ #
 
 fixtures = [
-	{
-		"doctype": "Field Service Activity Type",
-		"filters": []
-	},
-	{
-		"doctype": "FSM Stage",
-		"filters": []
-	},
+	# Données métier FSM
+	{"doctype": "Field Service Activity Type", "filters": []},
+	{"doctype": "FSM Stage",                   "filters": []},
+	# Rôles et profils
 	{
 		"doctype": "Role",
-		"filters": [["role_name", "in", ["Field Service Manager", "Field Service User"]]]
+		"filters": [["role_name", "in", ["Field Service Manager", "Field Service User", "Supplier"]]],
 	},
 	{
-		"doctype": "Print Format",
-		"filters": [["doc_type", "=", "Field Service Order"]]
+		"doctype": "Role Profile",
+		"filters": [["role_profile", "in", [
+			"Gestionnaire FSM", "Technicien FSM", "Administrateur FSM", "Fournisseur FSM",
+		]]],
 	},
+	# Notifications automatiques
+	{
+		"doctype": "Notification",
+		"filters": [["name", "like", "fsm-%"]],
+	},
+	# Modèles d'e-mail
+	{
+		"doctype": "Email Template",
+		"filters": [["name", "like", "fsm-%"]],
+	},
+	# Graphiques dashboard
+	{
+		"doctype": "Dashboard Chart",
+		"filters": [["name", "in", [
+			"Interventions par statut",
+			"Tendance mensuelle",
+			"Respect des SLA",
+			"Charge des techniciens",
+		]]],
+	},
+	# Format d'impression
+	{"doctype": "Print Format", "filters": [["doc_type", "=", "Field Service Order"]]},
 ]

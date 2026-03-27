@@ -1,0 +1,23 @@
+[
+ {
+  "doctype": "Email Template",
+  "name": "fsm-rappel-intervention-technicien",
+  "subject": "[Rappel] Intervention planifiée demain : {{ doc.name }}",
+  "use_html": 1,
+  "response": "<p>Bonjour {{ doc.technician }},</p><p>Rappel : vous avez une intervention planifiée <strong>demain</strong>.</p><table style='width:100%;border-collapse:collapse;font-size:14px'><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:8px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'><strong>Adresse</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.address or 'Voir la fiche' }}</td></tr><tr><td style='padding:8px;border:1px solid #dee2e6'><strong>Heure prévue</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.scheduled_time or '—' }}</td></tr><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'><strong>Pièces requises</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{% for p in doc.parts %}{{ p.item_name }} ×{{ p.qty }}{% if not loop.last %}, {% endif %}{% else %}Aucune{% endfor %}</td></tr></table><p><a href='{{ frappe.utils.get_url() }}/my/technician/{{ doc.name }}' style='background:#0d6efd;color:white;padding:8px 16px;border-radius:4px;text-decoration:none'>Voir sur mon portail</a></p>"
+ },
+ {
+  "doctype": "Email Template",
+  "name": "fsm-notification-pre-visite-client",
+  "subject": "Votre technicien arrive demain — {{ doc.name }}",
+  "use_html": 1,
+  "response": "<p>Bonjour {{ doc.contact_name or doc.customer }},</p><p>Votre technicien se rendra chez vous <strong>demain</strong> dans le cadre de votre demande d'intervention.</p><table style='width:100%;border-collapse:collapse;font-size:14px'><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'><strong>Référence</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:8px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ doc.technician or 'À confirmer' }}</td></tr><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'><strong>Créneau prévu</strong></td><td style='padding:8px;border:1px solid #dee2e6'>{{ frappe.format_date(doc.scheduled_date) }}{% if doc.scheduled_time %} à {{ doc.scheduled_time }}{% endif %}</td></tr></table><p>Assurez-vous que l'accès au site est possible. Pour toute question ou report, répondez à cet email.</p><p><a href='{{ frappe.utils.get_url() }}/my/interventions/{{ doc.name }}' style='background:#0d6efd;color:white;padding:8px 16px;border-radius:4px;text-decoration:none'>Suivre mon intervention</a></p>"
+ },
+ {
+  "doctype": "Email Template",
+  "name": "fsm-decompte-mensuel",
+  "subject": "Décompte mensuel Field Service — {{ month_name }} {{ year }}",
+  "use_html": 1,
+  "response": "<h2 style='color:#0d6efd'>Décompte mensuel — {{ month_name }} {{ year }}</h2><p>Bonjour,</p><p>Veuillez trouver ci-joint le rapport de décompte mensuel des Services sur Site.</p><table style='width:100%;border-collapse:collapse;font-size:14px'><tr style='background:#0d6efd;color:white'><td style='padding:8px'><strong>Indicateur</strong></td><td style='padding:8px;text-align:right'><strong>Valeur</strong></td></tr><tr><td style='padding:8px;border:1px solid #dee2e6'>Interventions totales</td><td style='padding:8px;border:1px solid #dee2e6;text-align:right'>{{ total_orders }}</td></tr><tr style='background:#f8f9fa'><td style='padding:8px;border:1px solid #dee2e6'>Heures facturables</td><td style='padding:8px;border:1px solid #dee2e6;text-align:right'>{{ total_hours }} h</td></tr><tr><td style='padding:8px;border:1px solid #dee2e6'>Techniciens actifs</td><td style='padding:8px;border:1px solid #dee2e6;text-align:right'>{{ total_techs }}</td></tr></table><p>Le détail complet est disponible dans le fichier XLSX joint.</p><p><a href='{{ frappe.utils.get_url() }}/my/decompte' style='background:#0d6efd;color:white;padding:8px 16px;border-radius:4px;text-decoration:none'>Consulter en ligne</a></p>"
+ }
+]

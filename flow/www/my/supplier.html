@@ -1,0 +1,242 @@
+{% extends "templates/web.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block page_content %}
+<div class="container py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+    <div>
+      <h2 class="mb-0">
+        <span class="me-2">🏭</span>Mon espace fournisseur
+      </h2>
+      {% if supplier_name %}
+        <p class="text-muted mb-0 mt-1">{{ supplier_name }}</p>
+      {% endif %}
+    </div>
+    <div class="text-muted small">Mis à jour : {{ frappe.utils.format_date(today) }}</div>
+  </div>
+
+  {% if not erp_available %}
+  <!-- Mode sans ERPNext -->
+  <div class="alert alert-info d-flex align-items-center gap-3">
+    <span style="font-size:2rem">ℹ️</span>
+    <div>
+      <strong>Module achats non activé.</strong><br>
+      L'intégration ERPNext (commandes, factures, paiements) sera disponible dès qu'ERPNext sera installé et configuré sur cette instance.
+    </div>
+  </div>
+  {% else %}
+
+  <!-- KPI cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div style="font-size:2rem;color:#0d6efd">📦</div>
+          <div class="display-6 fw-bold">{{ stats.open_orders }}</div>
+          <div class="text-muted small">Commandes ouvertes</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div style="font-size:2rem;color:#fd7e14">🧾</div>
+          <div class="display-6 fw-bold">{{ stats.pending_invoices }}</div>
+          <div class="text-muted small">Factures en attente</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div style="font-size:2rem;color:#dc3545">⚠️</div>
+          <div class="display-6 fw-bold text-danger">{{ stats.overdue_count }}</div>
+          <div class="text-muted small">Factures en retard</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center border-0 shadow-sm h-100">
+        <div class="card-body">
+          <div style="font-size:2rem;color:#198754">💰</div>
+          <div class="display-6 fw-bold text-success">{{ "%.0f"|format(stats.paid_amount) }}</div>
+          <div class="text-muted small">Montant payé (total)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Onglets -->
+  <ul class="nav nav-tabs mb-3" id="supplierTabs" role="tablist">
+    <li class="nav-item">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-orders">
+        📦 Commandes <span class="badge bg-primary ms-1">{{ purchase_orders | length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-invoices">
+        🧾 Factures <span class="badge bg-secondary ms-1">{{ invoices | length }}</span>
+      </button>
+    </li>
+    <li class="nav-item">
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-payments">
+        💳 Paiements <span class="badge bg-success ms-1">{{ payments | length }}</span>
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="supplierTabsContent">
+
+    <!-- Commandes d'achat -->
+    <div class="tab-pane fade show active" id="tab-orders">
+      {% if purchase_orders %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Livraison prévue</th>
+              <th>Statut</th>
+              <th class="text-end">Montant</th>
+              <th class="text-end">Reçu %</th>
+              <th class="text-end">Facturé %</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for o in purchase_orders %}
+            {% set row_class = "table-warning" if o.status in ("To Receive and Bill", "To Receive") else "" %}
+            <tr class="{{ row_class }}">
+              <td><code>{{ o.name }}</code></td>
+              <td>{{ frappe.utils.format_date(o.transaction_date) }}</td>
+              <td>{{ frappe.utils.format_date(o.schedule_date) if o.schedule_date else "—" }}</td>
+              <td>
+                {% if o.status == "To Receive and Bill" %}
+                  <span class="badge bg-warning text-dark">À recevoir/facturer</span>
+                {% elif o.status == "To Bill" %}
+                  <span class="badge bg-info text-dark">À facturer</span>
+                {% elif o.status == "To Receive" %}
+                  <span class="badge bg-primary">À recevoir</span>
+                {% elif o.status == "Completed" %}
+                  <span class="badge bg-success">Terminé</span>
+                {% elif o.status == "Cancelled" %}
+                  <span class="badge bg-secondary">Annulé</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ o.status }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">{{ "%.2f"|format(o.grand_total or 0) }} {{ o.currency }}</td>
+              <td class="text-end">{{ "%.0f"|format(o.per_received or 0) }}%</td>
+              <td class="text-end">{{ "%.0f"|format(o.per_billed or 0) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">
+          <div style="font-size:3rem">📦</div>
+          <p>Aucune commande trouvée.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Factures -->
+    <div class="tab-pane fade" id="tab-invoices">
+      {% if invoices %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Facture</th>
+              <th>Date</th>
+              <th>Échéance</th>
+              <th>Statut</th>
+              <th class="text-end">Total</th>
+              <th class="text-end">Solde dû</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for inv in invoices %}
+            {% set is_overdue = inv.due_date and frappe.utils.getdate(inv.due_date) < frappe.utils.getdate(today) and (inv.outstanding_amount or 0) > 0 %}
+            <tr class="{{ 'table-danger' if is_overdue else '' }}">
+              <td><code>{{ inv.name }}</code></td>
+              <td>{{ frappe.utils.format_date(inv.posting_date) }}</td>
+              <td>
+                {{ frappe.utils.format_date(inv.due_date) if inv.due_date else "—" }}
+                {% if is_overdue %}<span class="badge bg-danger ms-1">Retard</span>{% endif %}
+              </td>
+              <td>
+                {% if inv.status == "Paid" %}
+                  <span class="badge bg-success">Payée</span>
+                {% elif inv.status == "Unpaid" %}
+                  <span class="badge bg-warning text-dark">Non payée</span>
+                {% elif inv.status == "Overdue" %}
+                  <span class="badge bg-danger">En retard</span>
+                {% elif inv.status == "Partly Paid" %}
+                  <span class="badge bg-info text-dark">Partielle</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ inv.status }}</span>
+                {% endif %}
+              </td>
+              <td class="text-end">{{ "%.2f"|format(inv.grand_total or 0) }} {{ inv.currency }}</td>
+              <td class="text-end fw-bold {{ 'text-danger' if (inv.outstanding_amount or 0) > 0 else 'text-success' }}">
+                {{ "%.2f"|format(inv.outstanding_amount or 0) }} {{ inv.currency }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">
+          <div style="font-size:3rem">🧾</div>
+          <p>Aucune facture trouvée.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Paiements -->
+    <div class="tab-pane fade" id="tab-payments">
+      {% if payments %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Mode</th>
+              <th>N° externe</th>
+              <th class="text-end">Montant payé</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in payments %}
+            <tr>
+              <td><code>{{ p.name }}</code></td>
+              <td>{{ frappe.utils.format_date(p.posting_date) }}</td>
+              <td>{{ p.mode_of_payment or "—" }}</td>
+              <td>{{ p.reference_no or "—" }}</td>
+              <td class="text-end fw-bold text-success">
+                {{ "%.2f"|format(p.paid_amount or 0) }} {{ p.currency }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="text-center py-5 text-muted">
+          <div style="font-size:3rem">💳</div>
+          <p>Aucun paiement enregistré.</p>
+        </div>
+      {% endif %}
+    </div>
+
+  </div><!-- /.tab-content -->
+
+  {% endif %}<!-- erp_available -->
+</div>
+{% endblock %}

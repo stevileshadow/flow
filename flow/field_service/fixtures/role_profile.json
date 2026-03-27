@@ -1,0 +1,37 @@
+[
+ {
+  "doctype": "Role Profile",
+  "role_profile": "Gestionnaire FSM",
+  "roles": [
+   {"doctype": "Has Role", "role": "Field Service Manager"},
+   {"doctype": "Has Role", "role": "Projects Manager"},
+   {"doctype": "Has Role", "role": "HR Manager"},
+   {"doctype": "Has Role", "role": "Accounts User"}
+  ]
+ },
+ {
+  "doctype": "Role Profile",
+  "role_profile": "Technicien FSM",
+  "roles": [
+   {"doctype": "Has Role", "role": "Field Service User"}
+  ]
+ },
+ {
+  "doctype": "Role Profile",
+  "role_profile": "Administrateur FSM",
+  "roles": [
+   {"doctype": "Has Role", "role": "Field Service Manager"},
+   {"doctype": "Has Role", "role": "System Manager"},
+   {"doctype": "Has Role", "role": "Accounts Manager"},
+   {"doctype": "Has Role", "role": "HR Manager"},
+   {"doctype": "Has Role", "role": "Projects Manager"}
+  ]
+ },
+ {
+  "doctype": "Role Profile",
+  "role_profile": "Fournisseur FSM",
+  "roles": [
+   {"doctype": "Has Role", "role": "Supplier"}
+  ]
+ }
+]
