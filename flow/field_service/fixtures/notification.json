@@ -2,14 +2,17 @@
  {
   "doctype": "Notification",
   "name": "fsm-intervention-assignee-technicien",
+  "channel": "Email",
   "subject": "[FSM] Nouvelle intervention assignée : {{ doc.name }}",
   "document_type": "Field Service Order",
   "event": "Value Change",
   "value_changed": "technician",
+  "condition_type": "Python",
   "condition": "doc.technician and doc.status not in ('Terminé', 'Annulé', 'Facturé')",
+  "message_type": "HTML",
   "is_standard": 1,
   "enabled": 1,
-  "message": "<p>Bonjour,</p><p>Une intervention vous a été assignée.</p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Date prévue</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_date(doc.scheduled_date) }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Priorité</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.priority }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Adresse</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.address or '' }}</td></tr></table><p>{{ doc.description or '' }}</p><p><a href='{{ frappe.utils.get_url_to_form('Field Service Order', doc.name) }}'>Voir l'intervention</a></p>",
+  "message": "<p>Bonjour,</p><p>Une intervention vous a été assignée.</p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Date prévue</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_date(doc.scheduled_date) }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Priorité</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.priority }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Adresse</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.address or '' }}</td></tr></table><p>{{ doc.description or '' }}</p><p><a href='{{ frappe.utils.get_url_to_form(\"Field Service Order\", doc.name) }}'>Voir l'intervention</a></p>",
   "recipients": [
    {"receiver_by_document_field": "technician_email"}
   ]
@@ -17,13 +20,16 @@
  {
   "doctype": "Notification",
   "name": "fsm-intervention-urgente-creee",
+  "channel": "Email",
   "subject": "[FSM] 🚨 Intervention URGENTE créée : {{ doc.name }} — {{ doc.customer }}",
   "document_type": "Field Service Order",
   "event": "New",
+  "condition_type": "Python",
   "condition": "doc.priority == 'Urgent'",
+  "message_type": "HTML",
   "is_standard": 1,
   "enabled": 1,
-  "message": "<p><strong>Une intervention urgente vient d'être créée.</strong></p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Description</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.description or 'N/A' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien assigné</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or 'Non assigné' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form('Field Service Order', doc.name) }}'>Prendre en charge</a></p>",
+  "message": "<p><strong>Une intervention urgente vient d'être créée.</strong></p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Description</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.description or 'N/A' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien assigné</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or 'Non assigné' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form(\"Field Service Order\", doc.name) }}'>Prendre en charge</a></p>",
   "recipients": [
    {"receiver_by_role": "Field Service Manager"}
   ]
@@ -31,14 +37,17 @@
  {
   "doctype": "Notification",
   "name": "fsm-sla-en-danger",
+  "channel": "Email",
   "subject": "[FSM] ⚠️ SLA en danger : {{ doc.name }} — {{ doc.customer }}",
   "document_type": "Field Service Order",
   "event": "Value Change",
   "value_changed": "sla_status",
+  "condition_type": "Python",
   "condition": "doc.sla_status == 'Warning'",
+  "message_type": "HTML",
   "is_standard": 1,
   "enabled": 1,
-  "message": "<p>Le SLA de l'intervention suivante est en danger :</p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or 'Non assigné' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Statut SLA</strong></td><td style='padding:6px;border:1px solid #dee2e6;color:orange'><strong>{{ doc.sla_status }}</strong></td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Délai résolution</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_datetime(doc.resolution_by) if doc.resolution_by else 'N/A' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form('Field Service Order', doc.name) }}'>Intervenir maintenant</a></p>",
+  "message": "<p>Le SLA de l'intervention suivante est en danger :</p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or 'Non assigné' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Statut SLA</strong></td><td style='padding:6px;border:1px solid #dee2e6;color:orange'><strong>{{ doc.sla_status }}</strong></td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Délai résolution</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_datetime(doc.resolution_by) if doc.resolution_by else 'N/A' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form(\"Field Service Order\", doc.name) }}'>Intervenir maintenant</a></p>",
   "recipients": [
    {"receiver_by_role": "Field Service Manager"}
   ]
@@ -46,14 +55,17 @@
  {
   "doctype": "Notification",
   "name": "fsm-sla-viole",
+  "channel": "Email",
   "subject": "[FSM] 🔴 SLA VIOLÉ : {{ doc.name }} — Action immédiate requise",
   "document_type": "Field Service Order",
   "event": "Value Change",
   "value_changed": "sla_status",
+  "condition_type": "Python",
   "condition": "doc.sla_status == 'Overdue'",
+  "message_type": "HTML",
   "is_standard": 1,
   "enabled": 1,
-  "message": "<p style='color:red'><strong>Le SLA a été violé. Une action immédiate est requise.</strong></p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or '<em>Non assigné</em>' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Date dépassement</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_datetime(doc.resolution_by) if doc.resolution_by else 'N/A' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form('Field Service Order', doc.name) }}'>Escalader maintenant</a></p>",
+  "message": "<p style='color:red'><strong>Le SLA a été violé. Une action immédiate est requise.</strong></p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Ordre</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Client</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.customer }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or 'Non assigné' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Date dépassement</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_datetime(doc.resolution_by) if doc.resolution_by else 'N/A' }}</td></tr></table><p><a href='{{ frappe.utils.get_url_to_form(\"Field Service Order\", doc.name) }}'>Escalader maintenant</a></p>",
   "recipients": [
    {"receiver_by_role": "Field Service Manager"},
    {"receiver_by_role": "System Manager"}
@@ -62,11 +74,14 @@
  {
   "doctype": "Notification",
   "name": "fsm-intervention-terminee-client",
+  "channel": "Email",
   "subject": "[FSM] Votre intervention est terminée — {{ doc.name }}",
   "document_type": "Field Service Order",
   "event": "Value Change",
   "value_changed": "status",
+  "condition_type": "Python",
   "condition": "doc.status == 'Terminé' and doc.customer_email",
+  "message_type": "HTML",
   "is_standard": 1,
   "enabled": 1,
   "message": "<p>Bonjour {{ doc.contact_name or doc.customer }},</p><p>Votre intervention sur site a été complétée avec succès.</p><table style='width:100%;border-collapse:collapse'><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Référence</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.name }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Date de clôture</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ frappe.format_date(doc.actual_end_date or frappe.utils.today()) }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Technicien</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.technician or '' }}</td></tr><tr><td style='padding:6px;border:1px solid #dee2e6'><strong>Durée réelle</strong></td><td style='padding:6px;border:1px solid #dee2e6'>{{ doc.actual_duration or '—' }} h</td></tr></table>{% if doc.report_summary %}<p><strong>Rapport :</strong> {{ doc.report_summary }}</p>{% endif %}<p>Pour toute question, répondez à cet email ou connectez-vous à votre portail.</p>",

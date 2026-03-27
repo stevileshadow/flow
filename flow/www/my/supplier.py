@@ -59,20 +59,38 @@ def get_context(context):
 # ------------------------------------------------------------------ #
 
 def _get_supplier_for_user(user_email: str) -> str | None:
-	"""Résout le Supplier lié à un utilisateur via Contact → Dynamic Link."""
+	"""
+	Résout le Supplier lié à un utilisateur connecté.
+
+	ERPNext v17 stocke les utilisateurs du portail fournisseur dans la table
+	enfant `Portal User` (parenttype=Supplier).  C'est le mécanisme standard :
+	quand un admin ajoute un email dans l'onglet "Portal Users" du Supplier,
+	ERPNext crée automatiquement l'enregistrement Portal User et assigne le
+	rôle "Supplier" à cet utilisateur.
+	"""
 	try:
+		# Méthode principale : Portal User (ERPNext v15+ / v17)
+		result = frappe.db.get_value(
+			"Portal User",
+			{"user": user_email, "parenttype": "Supplier"},
+			"parent",
+		)
+		if result:
+			return result
+
+		# Repli : Contact Email → Dynamic Link (compatibilité CRM)
 		contact = frappe.db.get_value(
 			"Contact Email",
 			{"email_id": user_email, "parenttype": "Contact"},
 			"parent",
 		)
-		if not contact:
-			return None
-		return frappe.db.get_value(
-			"Dynamic Link",
-			{"parent": contact, "parenttype": "Contact", "link_doctype": "Supplier"},
-			"link_name",
-		)
+		if contact:
+			return frappe.db.get_value(
+				"Dynamic Link",
+				{"parent": contact, "parenttype": "Contact", "link_doctype": "Supplier"},
+				"link_name",
+			)
+		return None
 	except Exception:
 		return None
 
