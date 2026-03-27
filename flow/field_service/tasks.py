@@ -8,7 +8,12 @@ from frappe.utils import add_days, getdate, now_datetime, today
 
 
 def send_daily_reminders():
-	"""Envoie une notification à chaque technicien pour ses interventions du jour."""
+	"""
+	Rappel quotidien pour chaque technicien : utilise l'email engine
+	pour bénéficier du template riche + anti-doublon.
+	"""
+	from flow.field_service.email_engine import send_auto_email
+
 	orders = frappe.get_all(
 		"Field Service Order",
 		filters={
@@ -16,32 +21,13 @@ def send_daily_reminders():
 			"status": ["in", ["Planifié", "En cours"]],
 			"assigned_to": ["is", "set"],
 		},
-		fields=["name", "title", "assigned_to", "assigned_to_name", "customer_name",
-		        "scheduled_time", "address_display"],
+		fields=["name"],
 	)
-
-	# Regrouper par technicien
-	by_tech = {}
-	for order in orders:
-		by_tech.setdefault(order.assigned_to, []).append(order)
-
-	for employee, tech_orders in by_tech.items():
-		user = frappe.db.get_value("Employee", employee, "user_id")
-		if not user:
-			continue
-
-		lines = "\n".join(
-			f"- {o.title} ({o.customer_name}) à {o.scheduled_time or 'heure non définie'}"
-			for o in tech_orders
-		)
-		frappe.sendmail(
-			recipients=[user],
-			subject=_("Vos interventions du jour — {0}").format(today()),
-			message=_(
-				"Bonjour {0},\n\nVoici vos interventions planifiées aujourd'hui :\n\n{1}\n\n"
-				"Bonne journée !"
-			).format(tech_orders[0].assigned_to_name, lines),
-		)
+	for o in orders:
+		try:
+			send_auto_email(o.name, "assignation")
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM tasks: daily reminder — {o.name}")
 
 
 def flag_overdue_orders():
@@ -137,6 +123,8 @@ def generate_preventive_maintenance_orders():
 
 def send_previsit_notifications():
 	"""D — Envoie un rappel au client la veille de son intervention (statut Planifié)."""
+	from flow.field_service.email_engine import send_auto_email
+
 	tomorrow = add_days(today(), 1)
 	orders = frappe.get_all(
 		"Field Service Order",
@@ -144,34 +132,13 @@ def send_previsit_notifications():
 			"scheduled_date": tomorrow,
 			"status": "Planifié",
 		},
-		fields=["name", "title", "customer_name", "contact_person", "contact_email",
-		        "assigned_to_name", "scheduled_time"],
+		fields=["name"],
 	)
 	for order in orders:
-		email = order.contact_email or None
-		if not email and order.contact_person:
-			email = frappe.db.get_value("Contact", order.contact_person, "email_id")
-		if not email:
-			continue
-		frappe.sendmail(
-			recipients=[email],
-			subject=_("Rappel : intervention prévue demain — {0}").format(order.title),
-			message=_(
-				"Bonjour {0},\n\n"
-				"Nous vous rappelons qu'une intervention est planifiée demain :\n\n"
-				"  Référence : {1}\n"
-				"  Date      : {2}\n"
-				"  Heure     : {3}\n"
-				"  Technicien: {4}\n\n"
-				"N'hésitez pas à nous contacter pour toute question."
-			).format(
-				order.customer_name or _("Client"),
-				order.name,
-				tomorrow,
-				order.scheduled_time or _("À confirmer"),
-				order.assigned_to_name or _("À assigner"),
-			),
-		)
+		try:
+			send_auto_email(order.name, "pre_visite")
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM tasks: pre-visit — {order.name}")
 
 
 def escalate_breached_sla_orders():

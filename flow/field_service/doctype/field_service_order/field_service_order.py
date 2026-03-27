@@ -327,6 +327,8 @@ class FieldServiceOrder(Document):
 		if self.is_new():
 			return
 		old_status = frappe.db.get_value("Field Service Order", self.name, "status")
+		# Mémorise pour on_update (qui s'exécute après la sauvegarde en DB)
+		self._pre_save_status = old_status
 		if old_status == self.status:
 			return
 
@@ -714,6 +716,30 @@ class FieldServiceOrder(Document):
 	# ------------------------------------------------------------------ #
 	#  Événements Frappe                                                   #
 	# ------------------------------------------------------------------ #
+
+	def after_insert(self):
+		"""Envoie la confirmation de création au client (silencieux)."""
+		try:
+			from flow.field_service.email_engine import trigger_on_new
+			trigger_on_new(self.name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM Email: after_insert — {self.name}")
+
+	def on_update(self):
+		"""Détecte les transitions de statut et déclenche l'email approprié."""
+		if self.is_new():
+			return
+		# _pre_save_status est défini dans _handle_status_transitions (validate), avant la sauvegarde
+		old_status = getattr(self, "_pre_save_status", None)
+		if old_status and old_status != self.status:
+			try:
+				from flow.field_service.email_engine import trigger_on_status_change
+				trigger_on_status_change(self.name, old_status, self.status)
+			except Exception:
+				frappe.log_error(
+					frappe.get_traceback(),
+					f"FSM Email: on_update ({old_status}→{self.status}) — {self.name}",
+				)
 
 	def on_submit(self):
 		if self.status == "Nouveau":
