@@ -1,0 +1,337 @@
+{% extends "templates/web.html" %}
+
+{% block page_content %}
+{% if no_employee %}
+<div class="alert alert-warning mt-4">
+  <strong>Aucun profil employé</strong> n'est associé à votre compte.
+  Contactez votre administrateur.
+</div>
+{% else %}
+
+<!-- ── En-tête planning ───────────────────────────────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="mb-0">📅 Mon planning</h2>
+    <small class="text-muted">{{ employee_name }}</small>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <a href="/my/schedule?week={{ prev_week }}" class="btn btn-sm btn-outline-secondary">‹ Semaine préc.</a>
+    <span class="badge bg-primary fs-6 px-3">
+      {{ week_start.strftime('%d %b') }} – {{ week_end.strftime('%d %b %Y') }}
+    </span>
+    <a href="/my/schedule?week={{ next_week }}" class="btn btn-sm btn-outline-secondary">Semaine suiv. ›</a>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-success btn-sm" onclick="openPunchModal()">
+      📍 Pointer maintenant
+    </button>
+    {% if not has_availability %}
+    <a href="/app/fsm-technician-availability/new-fsm-technician-availability-1"
+       class="btn btn-outline-info btn-sm">
+      🗓 Déclarer mes disponibilités
+    </a>
+    {% else %}
+    <a href="{{ availability_link }}" class="btn btn-outline-secondary btn-sm">
+      ✏️ Mes disponibilités
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── KPIs rapides ───────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-primary">{{ total_orders }}</div>
+        <div class="small text-muted">Interventions cette semaine</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-success">{{ open_shifts | length }}</div>
+        <div class="small text-muted">Quarts à combler disponibles</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-warning">{{ leaves | length }}</div>
+        <div class="small text-muted">Congés cette semaine</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center border-0 shadow-sm h-100">
+      <div class="card-body py-3">
+        <div class="fs-2 fw-bold text-info">{{ recent_punches | length }}</div>
+        <div class="small text-muted">Pointages récents</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Grille calendrier semaine ─────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-bold">
+    Calendrier de la semaine
+  </div>
+  <div class="card-body p-0">
+    <div class="row g-0">
+      {% for day in days %}
+      {% set day_orders = orders_by_date.get(day.date, []) %}
+      {% set is_today = day.date == today() %}
+      <div class="col border-end" style="min-width:140px;">
+        <div class="p-2 border-bottom text-center {% if is_today %}bg-primary text-white{% else %}bg-light{% endif %}">
+          <div class="fw-bold">{{ day.label }}</div>
+          <div class="small">{{ day.date[8:] }}/{{ day.date[5:7] }}</div>
+        </div>
+        <div class="p-2" style="min-height:120px;">
+          {% if leaves %}{% for leave in leaves %}
+            {% if leave.from_date <= day.date and leave.to_date >= day.date %}
+            <div class="badge bg-warning text-dark w-100 mb-1 text-wrap">
+              🌴 {{ leave.leave_type }}
+            </div>
+            {% endif %}
+          {% endfor %}{% endif %}
+          {% for o in day_orders %}
+          {% set color = {
+            'Terminé': 'success', 'Facturé': 'info',
+            'En cours': 'warning', 'Annulé': 'danger',
+            'Planifié': 'secondary', 'Nouveau': 'light'
+          }.get(o.status, 'secondary') %}
+          <a href="/my/technician/{{ o.name }}"
+             class="d-block text-decoration-none mb-1">
+            <div class="card border-0 bg-{{ color }} bg-opacity-15 p-1" style="border-left:3px solid var(--bs-{{ color }}) !important;">
+              <div class="small fw-bold text-truncate">{{ o.title }}</div>
+              <div class="x-small text-muted">
+                {% if o.scheduled_time %}{{ o.scheduled_time[:5] }}{% endif %}
+                {{ o.customer_name or '' }}
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+          {% if not day_orders and not leaves %}
+          <div class="text-center text-muted small py-3">—</div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ── Quarts à combler ───────────────────────────────────────────────── -->
+{% if open_shifts %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white d-flex align-items-center justify-content-between">
+    <span class="fw-bold">🔔 Quarts à combler cette semaine</span>
+    <span class="badge bg-success">{{ open_shifts | length }}</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="list-group list-group-flush">
+      {% for shift in open_shifts %}
+      <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="fw-bold">{{ shift.title }}</div>
+            <div class="small text-muted">
+              📅 {{ shift.shift_date }}
+              {% if shift.from_time %}⏰ {{ shift.from_time[:5] }} – {{ shift.to_time[:5] }}{% endif %}
+              {% if shift.fsm_location %} 📍 {{ shift.fsm_location }}{% endif %}
+            </div>
+            {% if shift.description %}
+            <div class="small mt-1 text-secondary">{{ shift.description[:120] }}</div>
+            {% endif %}
+          </div>
+          <button class="btn btn-sm btn-success ms-2"
+                  onclick="claimShift('{{ shift.name }}', '{{ shift.title | e }}')">
+            Postuler
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Congés ─────────────────────────────────────────────────────────── -->
+{% if leaves %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-bold">🌴 Congés cette semaine</div>
+  <div class="card-body p-0">
+    <div class="list-group list-group-flush">
+      {% for leave in leaves %}
+      <div class="list-group-item d-flex justify-content-between">
+        <span>{{ leave.leave_type }}</span>
+        <span class="text-muted small">{{ leave.from_date }} – {{ leave.to_date }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Derniers pointages GPS ─────────────────────────────────────────── -->
+{% if recent_punches %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white fw-bold">📍 Mes derniers pointages</div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Type</th><th>Horodatage</th><th>Intervention</th>
+          <th>Distance site</th><th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in recent_punches %}
+        <tr>
+          <td>{{ p.punch_type }}</td>
+          <td class="text-muted small">{{ p.punch_time }}</td>
+          <td>{{ p.field_service_order or '—' }}</td>
+          <td>{{ p.distance_from_site | int }} m</td>
+          <td>
+            {% if p.within_radius %}
+            <span class="badge bg-success">✓ Valide</span>
+            {% else %}
+            <span class="badge bg-warning text-dark">⚠ Hors rayon</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Modal pointage GPS ─────────────────────────────────────────────── -->
+<div class="modal fade" id="punchModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">📍 Pointer maintenant</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Intervention</label>
+          <select id="punch-fso" class="form-select">
+            <option value="">-- Sélectionner --</option>
+            {% for o in orders_by_date.values() | sum(start=[]) %}
+            {% if o.status in ['Planifié', 'En cours'] %}
+            <option value="{{ o.name }}">{{ o.title }} ({{ o.scheduled_date }})</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Type de pointage</label>
+          <div class="d-grid gap-2">
+            <button class="btn btn-success punch-btn" data-type="Arrivée">🟢 Arrivée</button>
+            <button class="btn btn-danger punch-btn" data-type="Départ">🔴 Départ</button>
+            <button class="btn btn-warning punch-btn" data-type="Pause début">🟡 Début de pause</button>
+            <button class="btn btn-info punch-btn" data-type="Pause fin">🔵 Fin de pause</button>
+          </div>
+        </div>
+        <div id="punch-status" class="alert d-none"></div>
+        <div id="punch-geo-info" class="text-muted small mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Pointage géolocalisé ───────────────────────────────────────────────────
+function openPunchModal() {
+  new bootstrap.Modal(document.getElementById('punchModal')).show();
+}
+
+document.querySelectorAll('.punch-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const punchType = this.dataset.type;
+    const fsoName = document.getElementById('punch-fso').value;
+    if (!fsoName) {
+      showPunchStatus('Sélectionnez une intervention.', 'warning');
+      return;
+    }
+    showPunchStatus('Récupération de votre position GPS...', 'info');
+    document.getElementById('punch-geo-info').textContent = '';
+
+    if (!navigator.geolocation) {
+      _sendPunch(fsoName, punchType, null, null, null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => _sendPunch(
+        fsoName, punchType,
+        pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy
+      ),
+      err => {
+        console.warn('GPS:', err.message);
+        _sendPunch(fsoName, punchType, null, null, null);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  });
+});
+
+function _sendPunch(fsoName, punchType, lat, lng, accuracy) {
+  frappe.call({
+    method: 'flow.field_service.hr_engine.record_geo_punch',
+    args: {
+      fso_name: fsoName,
+      punch_type: punchType,
+      latitude: lat,
+      longitude: lng,
+      accuracy: accuracy,
+      device_info: navigator.userAgent.substring(0, 200),
+    },
+    callback(r) {
+      if (r.message) {
+        const d = r.message;
+        const cls = d.is_valid ? 'success' : 'warning';
+        showPunchStatus(d.message, cls);
+        if (lat && lng) {
+          document.getElementById('punch-geo-info').textContent =
+            `📍 Lat: ${lat.toFixed(5)}, Lng: ${lng.toFixed(5)} — Précision: ${accuracy ? Math.round(accuracy)+'m' : 'N/D'}`;
+        }
+        setTimeout(() => location.reload(), 2000);
+      }
+    },
+    error(e) { showPunchStatus('Erreur lors du pointage.', 'danger'); }
+  });
+}
+
+function showPunchStatus(msg, type) {
+  const el = document.getElementById('punch-status');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  el.classList.remove('d-none');
+}
+
+// ── Candidature quart à combler ───────────────────────────────────────────
+function claimShift(shiftName, shiftTitle) {
+  frappe.confirm(
+    `Postuler pour le quart «${shiftTitle}» ?`,
+    () => {
+      frappe.call({
+        method: 'flow.field_service.hr_engine.claim_open_shift',
+        args: { shift_name: shiftName },
+        callback(r) {
+          frappe.show_alert({ message: 'Candidature envoyée !', indicator: 'green' });
+          setTimeout(() => location.reload(), 1500);
+        }
+      });
+    }
+  );
+}
+</script>
+
+{% endif %}
+{% endblock %}

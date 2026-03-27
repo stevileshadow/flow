@@ -28,6 +28,12 @@ portal_menu_items = [
 		"role": "Field Service User",
 	},
 	{
+		"title": "Mon planning",
+		"route": "/my/schedule",
+		"reference_doctype": "Field Service Order",
+		"role": "Field Service User",
+	},
+	{
 		"title": "Décompte mensuel",
 		"route": "/my/decompte",
 		"reference_doctype": "Field Service Order",
@@ -46,6 +52,7 @@ website_route_rules = [
 	{"from_route": "/my/signature",            "to_route": "my/signature"},
 	{"from_route": "/my/decompte",             "to_route": "my/decompte"},
 	{"from_route": "/my/supplier",             "to_route": "my/supplier"},
+	{"from_route": "/my/schedule",             "to_route": "my/schedule"},
 ]
 
 # ------------------------------------------------------------------ #
@@ -64,12 +71,14 @@ has_permission = {
 scheduler_events = {
 	"cron": {
 		# Chaque matin à 7h : rappels techniciens, notifs pré-visite clients, ordres PM,
-		# facturation batch des mandats clôturés
+		# facturation batch, auto-scheduling, notification quarts ouverts
 		"0 7 * * *": [
 			"flow.field_service.tasks.send_daily_reminders",
 			"flow.field_service.tasks.send_previsit_notifications",
 			"flow.field_service.tasks.generate_preventive_maintenance_orders",
 			"flow.field_service.tasks.auto_generate_mandate_invoices",
+			"flow.field_service.tasks.auto_schedule_unassigned_fsos",
+			"flow.field_service.tasks.notify_open_shifts_daily",
 		],
 		# Chaque heure : retards, SLA, escalades
 		"0 * * * *": [
@@ -118,6 +127,8 @@ fixtures = [
 	# Données métier FSM
 	{"doctype": "Field Service Activity Type", "filters": []},
 	{"doctype": "FSM Stage",                   "filters": []},
+	# Disponibilités (gabarits hebdomadaires par défaut)
+	{"doctype": "FSM Technician Availability", "filters": []},
 	# Rôles et profils
 	{
 		"doctype": "Role",

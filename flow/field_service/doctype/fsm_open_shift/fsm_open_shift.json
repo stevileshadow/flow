@@ -1,0 +1,239 @@
+{
+ "actions": [],
+ "autoname": "FSM-QC-.YYYY.-.####",
+ "creation": "2026-03-27 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "title",
+  "shift_date",
+  "from_time",
+  "to_time",
+  "status",
+  "column_break_header",
+  "fsm_location",
+  "fsm_team",
+  "activity_type",
+  "headcount",
+  "company",
+  "section_description",
+  "description",
+  "required_skills",
+  "section_claims",
+  "claims",
+  "section_result",
+  "claimed_by",
+  "claimed_by_name",
+  "claimed_at",
+  "column_break_result",
+  "approved_by",
+  "approved_by_name",
+  "approved_at",
+  "field_service_order"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Titre du quart",
+   "reqd": 1
+  },
+  {
+   "fieldname": "shift_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "from_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Heure de début",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_time",
+   "fieldtype": "Time",
+   "in_list_view": 1,
+   "label": "Heure de fin",
+   "reqd": 1
+  },
+  {
+   "default": "Ouvert",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Statut",
+   "options": "Ouvert\nR\u00e9clam\u00e9\nAssign\u00e9\nAnnul\u00e9"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "fsm_location",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Lieu d'intervention",
+   "options": "FSM Location"
+  },
+  {
+   "fieldname": "fsm_team",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "\u00c9quipe",
+   "options": "FSM Team"
+  },
+  {
+   "fieldname": "activity_type",
+   "fieldtype": "Link",
+   "label": "Type d'activit\u00e9",
+   "options": "Field Service Activity Type"
+  },
+  {
+   "default": "1",
+   "fieldname": "headcount",
+   "fieldtype": "Int",
+   "label": "Techniciens requis",
+   "description": "Nombre de techniciens n\u00e9cessaires pour ce quart"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Soci\u00e9t\u00e9",
+   "options": "Company"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Description"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description du quart"
+  },
+  {
+   "fieldname": "required_skills",
+   "fieldtype": "Small Text",
+   "label": "Comp\u00e9tences requises",
+   "description": "Ex.: \u00e9lectricit\u00e9, m\u00e9canique, conduite nacelle..."
+  },
+  {
+   "fieldname": "section_claims",
+   "fieldtype": "Section Break",
+   "label": "Candidatures re\u00e7ues"
+  },
+  {
+   "fieldname": "claims",
+   "fieldtype": "Table",
+   "label": "Candidatures",
+   "options": "FSM Open Shift Claim",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_result",
+   "fieldtype": "Section Break",
+   "label": "R\u00e9sultat de l'affectation"
+  },
+  {
+   "fieldname": "claimed_by",
+   "fieldtype": "Link",
+   "label": "Assign\u00e9 \u00e0",
+   "options": "Employee",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fetch_from": "claimed_by.employee_name",
+   "fieldname": "claimed_by_name",
+   "fieldtype": "Data",
+   "label": "Nom du technicien",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "claimed_at",
+   "fieldtype": "Datetime",
+   "label": "Candidature le",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_result",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approuv\u00e9 par",
+   "options": "Employee",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fetch_from": "approved_by.employee_name",
+   "fieldname": "approved_by_name",
+   "fieldtype": "Data",
+   "label": "Approbateur",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_at",
+   "fieldtype": "Datetime",
+   "label": "Approuv\u00e9 le",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "field_service_order",
+   "fieldtype": "Link",
+   "label": "FSO cr\u00e9\u00e9",
+   "options": "Field Service Order",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Open Shift",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "shift_date",
+ "sort_order": "DESC",
+ "states": [
+  {"color": "Blue",   "title": "Ouvert"},
+  {"color": "Yellow", "title": "R\u00e9clam\u00e9"},
+  {"color": "Green",  "title": "Assign\u00e9"},
+  {"color": "Red",    "title": "Annul\u00e9"}
+ ]
+}

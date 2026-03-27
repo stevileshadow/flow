@@ -1,0 +1,191 @@
+{
+ "actions": [],
+ "autoname": "FSM-GPS-.YYYY.-.####",
+ "creation": "2026-03-27 00:00:00.000000",
+ "doctype": "DocType",
+ "document_type": "Document",
+ "engine": "InnoDB",
+ "field_order": [
+  "employee",
+  "employee_name",
+  "field_service_order",
+  "punch_type",
+  "punch_time",
+  "column_break_header",
+  "is_valid",
+  "distance_from_site",
+  "within_radius",
+  "is_manual",
+  "section_geo",
+  "latitude",
+  "longitude",
+  "column_break_geo",
+  "accuracy_meters",
+  "address_resolved",
+  "section_notes",
+  "device_info",
+  "notes"
+ ],
+ "fields": [
+  {
+   "bold": 1,
+   "fieldname": "employee",
+   "fieldtype": "Link",
+   "in_global_search": 1,
+   "in_list_view": 1,
+   "label": "Technicien",
+   "options": "Employee",
+   "reqd": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Nom",
+   "read_only": 1
+  },
+  {
+   "fieldname": "field_service_order",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Intervention",
+   "options": "Field Service Order"
+  },
+  {
+   "fieldname": "punch_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Type de pointage",
+   "options": "Arriv\u00e9e\nD\u00e9part\nPause d\u00e9but\nPause fin",
+   "reqd": 1
+  },
+  {
+   "fieldname": "punch_time",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Horodatage",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_valid",
+   "fieldtype": "Check",
+   "label": "Pointage valide",
+   "read_only": 1
+  },
+  {
+   "fieldname": "distance_from_site",
+   "fieldtype": "Float",
+   "label": "Distance du site (m)",
+   "precision": "0",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "within_radius",
+   "fieldtype": "Check",
+   "label": "Dans le rayon autoris\u00e9",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "is_manual",
+   "fieldtype": "Check",
+   "label": "Saisie manuelle (gestionnaire)",
+   "description": "Coch\u00e9 si le pointage a \u00e9t\u00e9 saisi manuellement sans GPS"
+  },
+  {
+   "fieldname": "section_geo",
+   "fieldtype": "Section Break",
+   "label": "Coordonn\u00e9es GPS"
+  },
+  {
+   "fieldname": "latitude",
+   "fieldtype": "Float",
+   "label": "Latitude",
+   "precision": "7",
+   "read_only": 1
+  },
+  {
+   "fieldname": "longitude",
+   "fieldtype": "Float",
+   "label": "Longitude",
+   "precision": "7",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_geo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accuracy_meters",
+   "fieldtype": "Float",
+   "label": "Pr\u00e9cision GPS (m)",
+   "precision": "0",
+   "read_only": 1
+  },
+  {
+   "fieldname": "address_resolved",
+   "fieldtype": "Small Text",
+   "label": "Adresse r\u00e9solue",
+   "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Informations techniques"
+  },
+  {
+   "fieldname": "device_info",
+   "fieldtype": "Small Text",
+   "label": "Info appareil",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-27 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Geolocation Punch",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Field Service Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Field Service User",
+   "if_owner": 1
+  }
+ ],
+ "sort_field": "punch_time",
+ "sort_order": "DESC",
+ "states": [
+  {"color": "Green", "title": "Arriv\u00e9e"},
+  {"color": "Red",   "title": "D\u00e9part"},
+  {"color": "Orange","title": "Pause d\u00e9but"},
+  {"color": "Blue",  "title": "Pause fin"}
+ ]
+}

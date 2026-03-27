@@ -26,6 +26,7 @@
   "section_geo",
   "latitude",
   "longitude",
+  "checkin_radius",
   "column_break_geo",
   "directions",
   "section_workers",
@@ -165,6 +166,13 @@
    "fieldtype": "Float",
    "label": "Longitude",
    "precision": "6"
+  },
+  {
+   "default": "500",
+   "fieldname": "checkin_radius",
+   "fieldtype": "Int",
+   "label": "Rayon de pointage autoris\u00e9 (m)",
+   "description": "Distance maximale en m\u00e8tres depuis le site pour valider un pointage g\u00e9olocalis\u00e9"
   },
   {
    "fieldname": "column_break_geo",

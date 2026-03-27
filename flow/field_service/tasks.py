@@ -430,3 +430,33 @@ def auto_generate_mandate_invoices():
 		_run()
 	except Exception:
 		frappe.log_error(frappe.get_traceback(), "FSM tasks: auto_generate_mandate_invoices")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Jobs planifiés — RH (quarts, disponibilités, horaire automatique)
+# ════════════════════════════════════════════════════════════════════════════
+
+def notify_open_shifts_daily():
+	"""
+	Batch matin (07h00) — notifie les techniciens disponibles pour les
+	quarts à combler des 7 prochains jours.
+	Délègue à hr_engine.notify_open_shifts_daily().
+	"""
+	try:
+		from flow.field_service.hr_engine import notify_open_shifts_daily as _run
+		_run()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM tasks: notify_open_shifts_daily")
+
+
+def auto_schedule_unassigned_fsos():
+	"""
+	Batch matin (07h00) — assigne automatiquement les FSO sans technicien
+	planifiés dans les 3 prochains jours (horaire automatique).
+	Délègue à hr_engine.auto_schedule_unassigned_fsos().
+	"""
+	try:
+		from flow.field_service.hr_engine import auto_schedule_unassigned_fsos as _run
+		_run()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM tasks: auto_schedule_unassigned_fsos")
