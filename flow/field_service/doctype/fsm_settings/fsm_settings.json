@@ -24,6 +24,18 @@
   "default_project_template",
   "column_break_projects",
   "auto_sync_task_on_status",
+  "section_automation",
+  "auto_create_labor_je",
+  "auto_create_invoice",
+  "invoice_item_code",
+  "column_break_automation",
+  "invoice_income_account",
+  "auto_close_stale_days",
+  "section_stock",
+  "auto_check_stock_on_schedule",
+  "default_warehouse",
+  "column_break_stock",
+  "auto_create_material_request",
   "section_reports",
   "decompte_recipients_hr",
   "decompte_recipients_accounts",
@@ -167,6 +179,84 @@
    "fieldname": "decompte_recipients_projects",
    "fieldtype": "Small Text",
    "label": "Destinataires Projets (email, un par ligne)"
+  },
+  {
+   "fieldname": "section_automation",
+   "fieldtype": "Section Break",
+   "label": "Automatisation — Clôture & Facturation"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_create_labor_je",
+   "fieldtype": "Check",
+   "label": "Créer automatiquement l'écriture MO à la clôture",
+   "description": "Journal Entry main-d'œuvre dès que le FSO passe en Terminé"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_create_invoice",
+   "fieldtype": "Check",
+   "label": "Créer automatiquement la facture client à la clôture",
+   "description": "Sales Invoice ERPNext générée dès que le FSO passe en Terminé (hors Pas de facturation)"
+  },
+  {
+   "fieldname": "invoice_item_code",
+   "fieldtype": "Link",
+   "label": "Article de facturation main-d'œuvre",
+   "options": "Item",
+   "depends_on": "auto_create_invoice",
+   "description": "Article ERPNext utilisé pour la ligne main-d'œuvre sur la facture"
+  },
+  {
+   "fieldname": "column_break_automation",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "invoice_income_account",
+   "fieldtype": "Link",
+   "label": "Compte de produit (facture)",
+   "options": "Account",
+   "depends_on": "auto_create_invoice",
+   "description": "Compte de revenus crédité sur chaque ligne de la facture automatique"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_close_stale_days",
+   "fieldtype": "Int",
+   "label": "Fermeture auto des ordres bloqués (jours)",
+   "description": "Ferme automatiquement les FSO en 'En cours' sans activité depuis N jours. 0 = désactivé"
+  },
+  {
+   "fieldname": "section_stock",
+   "fieldtype": "Section Break",
+   "label": "Stock & Approvisionnement"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_check_stock_on_schedule",
+   "fieldtype": "Check",
+   "label": "Vérifier la disponibilité des pièces à la planification",
+   "description": "Contrôle le stock de chaque pièce consommée quand le FSO passe en Planifié"
+  },
+  {
+   "fieldname": "default_warehouse",
+   "fieldtype": "Link",
+   "label": "Entrepôt par défaut (pièces FSO)",
+   "options": "Warehouse",
+   "depends_on": "auto_check_stock_on_schedule",
+   "description": "Entrepôt ERPNext utilisé pour les contrôles et réquisitions de stock"
+  },
+  {
+   "fieldname": "column_break_stock",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_create_material_request",
+   "fieldtype": "Check",
+   "label": "Créer automatiquement une réquisition si stock insuffisant",
+   "depends_on": "auto_check_stock_on_schedule",
+   "description": "Material Request ERPNext créée automatiquement pour les pièces manquantes"
   }
  ],
  "issingle": 1,

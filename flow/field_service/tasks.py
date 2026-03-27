@@ -387,3 +387,46 @@ def notify_customer_on_status_change(doc, method=None):
 			doc.scheduled_date or _("À définir"),
 		),
 	)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Jobs planifiés — Automation cross-modules ERPNext
+# ════════════════════════════════════════════════════════════════════════════
+
+def sync_pending_erp_timesheets():
+	"""
+	Batch nocturne (02h00) — rattrape les Timesheets ERPNext manquantes pour
+	les FSO clôturés depuis moins de 7 jours.
+	Délègue à automation.sync_pending_erp_timesheets().
+	"""
+	try:
+		from flow.field_service.automation import sync_pending_erp_timesheets as _run
+		_run()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM tasks: sync_pending_erp_timesheets")
+
+
+def auto_close_stale_orders():
+	"""
+	Batch nocturne (02h00) — ferme automatiquement les ordres bloqués en
+	'En cours' selon le délai configuré dans FSM Settings.
+	Délègue à automation.auto_close_stale_orders().
+	"""
+	try:
+		from flow.field_service.automation import auto_close_stale_orders as _run
+		_run()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM tasks: auto_close_stale_orders")
+
+
+def auto_generate_mandate_invoices():
+	"""
+	Batch matin (06h00) — génère les Sales Invoices pour les mandats dont
+	tous les FSO sont clôturés et sans facture.
+	Délègue à automation.auto_generate_mandate_invoices().
+	"""
+	try:
+		from flow.field_service.automation import auto_generate_mandate_invoices as _run
+		_run()
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM tasks: auto_generate_mandate_invoices")

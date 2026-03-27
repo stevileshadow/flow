@@ -88,7 +88,8 @@
   "erp_task",
   "erp_timesheet",
   "column_break_erp",
-  "erp_journal_entry"
+  "erp_journal_entry",
+  "erp_material_request"
  ],
  "fields": [
   {
@@ -149,6 +150,15 @@
    "options": "Journal Entry",
    "read_only": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "erp_material_request",
+   "fieldtype": "Link",
+   "label": "R\u00e9quisition de pi\u00e8ces",
+   "options": "Material Request",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
   },
   {
    "fieldname": "fsm_stage",
