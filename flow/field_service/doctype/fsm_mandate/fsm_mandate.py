@@ -12,9 +12,17 @@ class FSMMandate(Document):
 		self._sync_orders_status()
 
 	def after_insert(self):
-		"""Crée automatiquement les FSO définis dans le gabarit dès la première sauvegarde."""
+		"""Crée automatiquement les FSO définis dans le gabarit dès la première sauvegarde,
+		et crée le projet ERPNext si la configuration le demande."""
 		if self.fsm_mandate_template and not self.orders:
 			self.create_orders_from_template()
+		try:
+			settings = frappe.get_single("FSM Settings")
+			if getattr(settings, "auto_create_erp_project", 0) and not self.erp_project:
+				from flow.field_service.api import sync_mandate_to_erp_project
+				sync_mandate_to_erp_project(self.name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM: auto create project — {self.name}")
 
 	def _sync_orders_status(self):
 		"""Met à jour le statut du mandat selon l'avancement de ses ordres."""

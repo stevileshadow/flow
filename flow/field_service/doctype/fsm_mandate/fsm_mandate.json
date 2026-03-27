@@ -23,7 +23,9 @@
   "section_orders",
   "orders",
   "section_notes",
-  "description"
+  "description",
+  "section_erp",
+  "erp_project"
  ],
  "fields": [
   {
@@ -135,6 +137,21 @@
    "fieldname": "description",
    "fieldtype": "Text Editor",
    "label": "Description du mandat"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_erp",
+   "fieldtype": "Section Break",
+   "label": "Int\u00e9gration ERPNext",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "erp_project",
+   "fieldtype": "Link",
+   "label": "Projet ERPNext li\u00e9",
+   "options": "Project",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "links": [],

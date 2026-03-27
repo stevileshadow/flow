@@ -1,0 +1,193 @@
+{
+ "actions": [],
+ "creation": "2026-03-26 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_accounting",
+  "labor_expense_account",
+  "employee_payable_account",
+  "default_cost_center",
+  "column_break_accounting",
+  "wip_account",
+  "default_hourly_rate",
+  "default_currency",
+  "section_hr",
+  "overtime_threshold",
+  "auto_create_erp_timesheet",
+  "column_break_hr",
+  "timesheet_activity_type",
+  "auto_create_additional_salary",
+  "overtime_salary_component",
+  "section_projects",
+  "auto_create_erp_project",
+  "default_project_template",
+  "column_break_projects",
+  "auto_sync_task_on_status",
+  "section_reports",
+  "decompte_recipients_hr",
+  "decompte_recipients_accounts",
+  "decompte_recipients_projects"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_accounting",
+   "fieldtype": "Section Break",
+   "label": "Comptabilit\u00e9"
+  },
+  {
+   "fieldname": "labor_expense_account",
+   "fieldtype": "Link",
+   "label": "Compte charge main-d\u2019\u0153uvre",
+   "options": "Account",
+   "description": "D\u00e9bit\u00e9 \u00e0 la cl\u00f4ture de chaque intervention (JE main-d\u2019\u0153uvre)"
+  },
+  {
+   "fieldname": "employee_payable_account",
+   "fieldtype": "Link",
+   "label": "Compte \u00e0 payer employ\u00e9s",
+   "options": "Account",
+   "description": "Cr\u00e9dit\u00e9 en contrepartie de la charge MO"
+  },
+  {
+   "fieldname": "default_cost_center",
+   "fieldtype": "Link",
+   "label": "Centre de co\u00fbt par d\u00e9faut",
+   "options": "Cost Center"
+  },
+  {
+   "fieldname": "column_break_accounting",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "wip_account",
+   "fieldtype": "Link",
+   "label": "Compte travaux en cours (WIP)",
+   "options": "Account"
+  },
+  {
+   "default": "0.00",
+   "fieldname": "default_hourly_rate",
+   "fieldtype": "Currency",
+   "label": "Taux horaire par d\u00e9faut"
+  },
+  {
+   "fieldname": "default_currency",
+   "fieldtype": "Link",
+   "label": "Devise",
+   "options": "Currency"
+  },
+  {
+   "fieldname": "section_hr",
+   "fieldtype": "Section Break",
+   "label": "RH \u2014 Paie"
+  },
+  {
+   "default": "8",
+   "fieldname": "overtime_threshold",
+   "fieldtype": "Float",
+   "label": "Seuil heures suppl\u00e9mentaires (h/jour)",
+   "precision": "1",
+   "description": "Au-del\u00e0 de cette limite par jour, les heures sont consid\u00e9r\u00e9es suppl\u00e9mentaires"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_create_erp_timesheet",
+   "fieldtype": "Check",
+   "label": "Cr\u00e9er automatiquement les Timesheets ERPNext \u00e0 la cl\u00f4ture"
+  },
+  {
+   "fieldname": "column_break_hr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "timesheet_activity_type",
+   "fieldtype": "Link",
+   "label": "Type d\u2019activit\u00e9 par d\u00e9faut (Timesheet)",
+   "options": "Activity Type",
+   "description": "Utilis\u00e9 si la ligne timesheet n\u2019a pas de type d\u2019activit\u00e9"
+  },
+  {
+   "default": "0",
+   "fieldname": "auto_create_additional_salary",
+   "fieldtype": "Check",
+   "label": "Cr\u00e9er une prime automatique si heures suppl\u00e9mentaires"
+  },
+  {
+   "fieldname": "overtime_salary_component",
+   "fieldtype": "Link",
+   "label": "Composante salariale heures sup.",
+   "options": "Salary Component",
+   "depends_on": "auto_create_additional_salary"
+  },
+  {
+   "fieldname": "section_projects",
+   "fieldtype": "Section Break",
+   "label": "Projets ERPNext"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_create_erp_project",
+   "fieldtype": "Check",
+   "label": "Cr\u00e9er automatiquement un projet ERPNext depuis chaque mandat"
+  },
+  {
+   "fieldname": "default_project_template",
+   "fieldtype": "Link",
+   "label": "Gabarit de projet ERPNext par d\u00e9faut",
+   "options": "Project Template"
+  },
+  {
+   "fieldname": "column_break_projects",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "auto_sync_task_on_status",
+   "fieldtype": "Check",
+   "label": "Synchroniser les t\u00e2ches ERPNext \u00e0 chaque changement de statut FSO"
+  },
+  {
+   "fieldname": "section_reports",
+   "fieldtype": "Section Break",
+   "label": "Rapports de d\u00e9compte"
+  },
+  {
+   "fieldname": "decompte_recipients_hr",
+   "fieldtype": "Small Text",
+   "label": "Destinataires RH (email, un par ligne)",
+   "description": "Re\u00e7oivent le d\u00e9compte mensuel RH automatiquement"
+  },
+  {
+   "fieldname": "decompte_recipients_accounts",
+   "fieldtype": "Small Text",
+   "label": "Destinataires Comptabilit\u00e9 (email, un par ligne)"
+  },
+  {
+   "fieldname": "decompte_recipients_projects",
+   "fieldtype": "Small Text",
+   "label": "Destinataires Projets (email, un par ligne)"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-03-26 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "FSM Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "read": 1,
+   "write": 1,
+   "role": "Field Service Manager"
+  },
+  {
+   "read": 1,
+   "role": "Field Service User"
+  }
+ ],
+ "sort_field": "name",
+ "sort_order": "ASC",
+ "states": []
+}

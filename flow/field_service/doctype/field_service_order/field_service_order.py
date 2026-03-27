@@ -417,10 +417,31 @@ class FieldServiceOrder(Document):
 				frappe.db.set_value("FSM Equipment", self.fsm_equipment, "status", "Actif")
 			eq = frappe.get_doc("FSM Equipment", self.fsm_equipment)
 			eq.update_after_service(str(self.actual_end)[:10])
+		# Intégrations ERPNext (silencieuses — erreurs loggées)
+		self._run_erp_integrations()
 		frappe.msgprint(
 			_("Intervention terminée. Durée : {0} h").format(self.actual_duration),
 			alert=True,
 		)
+
+	def _run_erp_integrations(self):
+		"""Lance les intégrations ERPNext activées dans FSM Settings."""
+		try:
+			settings = frappe.get_single("FSM Settings")
+		except Exception:
+			return
+		try:
+			from flow.field_service.api import sync_fso_task_status
+			if getattr(settings, "auto_sync_task_on_status", 1):
+				sync_fso_task_status(self.name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM: sync task — {self.name}")
+		try:
+			from flow.field_service.api import create_erp_timesheets
+			if getattr(settings, "auto_create_erp_timesheet", 0) and not self.erp_timesheet:
+				create_erp_timesheets(self.name)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), f"FSM: create timesheets — {self.name}")
 
 	@frappe.whitelist()
 	def create_invoice(self):

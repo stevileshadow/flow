@@ -83,7 +83,12 @@
   "amended_from",
   "is_preventive_maintenance",
   "sla_escalated",
-  "signature_token"
+  "signature_token",
+  "section_erp_links",
+  "erp_task",
+  "erp_timesheet",
+  "column_break_erp",
+  "erp_journal_entry"
  ],
  "fields": [
   {
@@ -109,6 +114,41 @@
    "no_copy": 1,
    "print_hide": 1,
    "read_only": 1
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_erp_links",
+   "fieldtype": "Section Break",
+   "label": "Int\u00e9grations ERPNext",
+   "print_hide": 1
+  },
+  {
+   "fieldname": "erp_task",
+   "fieldtype": "Link",
+   "label": "T\u00e2che ERPNext",
+   "options": "Task",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "erp_timesheet",
+   "fieldtype": "Link",
+   "label": "Timesheet ERPNext",
+   "options": "Timesheet",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_erp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "erp_journal_entry",
+   "fieldtype": "Link",
+   "label": "\u00c9criture comptable (MO)",
+   "options": "Journal Entry",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "fsm_stage",

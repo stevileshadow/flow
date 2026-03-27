@@ -244,6 +244,75 @@ def escalate_breached_sla_orders():
 	frappe.db.commit()
 
 
+def send_monthly_decompte():
+	"""1er de chaque mois — génère le décompte du mois précédent et l'envoie par email."""
+	import datetime
+	today = datetime.date.today()
+	if today.month == 1:
+		month, year = 12, today.year - 1
+	else:
+		month, year = today.month - 1, today.year
+
+	try:
+		from flow.field_service.api import _collect_data, _build_xlsx
+		settings = frappe.get_single("FSM Settings")
+		data = _collect_data(month, year)
+		xlsx = _build_xlsx(data, month, year)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "FSM: Erreur génération décompte mensuel")
+		return
+
+	months_fr = ["", "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
+	             "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"]
+	period = f"{months_fr[month]} {year}"
+	filename = f"decompte_{year}_{month:02d}.xlsx"
+	s = data["summary"]
+
+	body = _(
+		"Bonjour,\n\nVeuillez trouver en pièce jointe le décompte mensuel Field Service pour {0}.\n\n"
+		"Résumé :\n"
+		"  Interventions : {1} (terminées : {2}, facturées : {3})\n"
+		"  Heures totales : {4} h\n"
+		"  Chiffre d'affaires : {5} €\n"
+		"  Techniciens actifs : {6}\n\n"
+		"Rapport complet disponible sur : {7}/my/decompte?month={8}&year={9}"
+	).format(
+		period, s["nb_orders"], s["nb_completed"], s["nb_invoiced"],
+		round(s["total_hours"], 1), round(s["total_revenue"], 2),
+		s["nb_technicians"],
+		frappe.utils.get_url(), month, year,
+	)
+
+	def _recipients_from_field(field_name):
+		raw = getattr(settings, field_name, None) or ""
+		return [e.strip() for e in raw.splitlines() if "@" in e.strip()]
+
+	all_recipients = list(set(
+		_recipients_from_field("decompte_recipients_hr")
+		+ _recipients_from_field("decompte_recipients_accounts")
+		+ _recipients_from_field("decompte_recipients_projects")
+	))
+
+	# Fallback : tous les Field Service Managers
+	if not all_recipients:
+		all_recipients = [
+			r.parent for r in frappe.get_all(
+				"Has Role",
+				filters={"role": "Field Service Manager", "parenttype": "User"},
+				fields=["parent"],
+			)
+		]
+
+	if all_recipients:
+		frappe.sendmail(
+			recipients=all_recipients,
+			subject=_(f"[FSM] Décompte mensuel — {period}"),
+			message=body,
+			attachments=[{"fname": filename, "fcontent": xlsx}],
+		)
+		frappe.logger().info(f"[FSM] Décompte {period} envoyé à {len(all_recipients)} destinataire(s)")
+
+
 def notify_technician_on_assignment(doc, method=None):
 	"""Notifie le(s) technicien(s) lors de la soumission de l'ordre."""
 	recipients = []

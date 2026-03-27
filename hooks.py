@@ -27,12 +27,19 @@ portal_menu_items = [
 		"reference_doctype": "Field Service Order",
 		"role": "Field Service User",
 	},
+	{
+		"title": "Décompte mensuel",
+		"route": "/my/decompte",
+		"reference_doctype": "Field Service Order",
+		"role": "Field Service Manager",
+	},
 ]
 
 website_route_rules = [
 	{"from_route": "/my/interventions/<name>", "to_route": "my/interventions/detail"},
 	{"from_route": "/my/technician/<name>", "to_route": "my/technician/detail"},
 	{"from_route": "/my/signature", "to_route": "my/signature"},
+	{"from_route": "/my/decompte", "to_route": "my/decompte"},
 ]
 
 # ------------------------------------------------------------------ #
@@ -61,6 +68,10 @@ scheduler_events = {
 			"flow.field_service.tasks.flag_overdue_orders",
 			"flow.field_service.tasks.update_sla_statuses",
 			"flow.field_service.tasks.escalate_breached_sla_orders",
+		],
+		# Le 1er de chaque mois à 6h : décompte mensuel envoyé aux responsables
+		"0 6 1 * *": [
+			"flow.field_service.tasks.send_monthly_decompte",
 		],
 	}
 }
