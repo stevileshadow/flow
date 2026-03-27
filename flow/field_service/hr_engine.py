@@ -20,12 +20,18 @@ API whitelisted (portail + Desk) :
   approve_shift_claim()        get_open_shifts_for_technician()
 """
 import math
+import datetime as _dt
 import frappe
 from frappe import _
 from frappe.utils import (
     add_days, flt, get_datetime, getdate, now_datetime, today,
-    get_first_day_of_week,
 )
+
+
+def _week_start(d=None):
+    """Retourne le lundi de la semaine contenant d (ou aujourd'hui si d est None)."""
+    d = getdate(d) if d else getdate(today())
+    return d - _dt.timedelta(days=d.weekday())
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -149,7 +155,7 @@ def _has_approved_leave(employee, date):
 
 def _count_weekly_workload(employee, date):
     """Compte les FSO planifiés pour la semaine contenant 'date'."""
-    week_start = get_first_day_of_week(date)
+    week_start = _week_start(date)
     week_end = add_days(week_start, 6)
     return frappe.db.count(
         "Field Service Order",
@@ -504,7 +510,7 @@ def get_my_schedule(start_date=None, end_date=None):
     if not employee:
         return {"orders": [], "open_shifts": [], "leaves": []}
 
-    start = getdate(start_date) if start_date else getdate(get_first_day_of_week(today()))
+    start = getdate(start_date) if start_date else _week_start()
     end   = getdate(end_date)   if end_date   else add_days(start, 6)
 
     orders = frappe.get_all(
@@ -570,7 +576,7 @@ def get_technician_workload(employee, week_start=None):
     Retourne la charge hebdomadaire d'un technicien (nb ordres par jour).
     Utilisé par l'horaire automatique et le planning gestionnaire.
     """
-    start = getdate(week_start) if week_start else getdate(get_first_day_of_week(today()))
+    start = getdate(week_start) if week_start else _week_start()
     end = add_days(start, 6)
 
     orders = frappe.get_all(

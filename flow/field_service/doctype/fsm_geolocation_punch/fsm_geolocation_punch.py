@@ -8,7 +8,7 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime
 
 
-class FSMGeolocalizationPunch(Document):
+class FSMGeolocationPunch(Document):
 
     def validate(self):
         if not self.punch_time:

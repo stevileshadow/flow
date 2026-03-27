@@ -83,7 +83,7 @@
     <div class="row g-0">
       {% for day in days %}
       {% set day_orders = orders_by_date.get(day.date, []) %}
-      {% set is_today = day.date == today() %}
+      {% set is_today = day.date == today_str %}
       <div class="col border-end" style="min-width:140px;">
         <div class="p-2 border-bottom text-center {% if is_today %}bg-primary text-white{% else %}bg-light{% endif %}">
           <div class="fw-bold">{{ day.label }}</div>

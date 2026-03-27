@@ -2,9 +2,10 @@
 # License: MIT
 """Portail technicien — Planning hebdomadaire, quarts à combler, pointage."""
 
+import datetime as _dt
 import frappe
 from frappe import _
-from frappe.utils import add_days, get_first_day_of_week, getdate, today
+from frappe.utils import add_days, getdate, today
 
 
 def get_context(context):
@@ -23,10 +24,15 @@ def get_context(context):
     context.no_employee = False
     context.employee = employee
     context.employee_name = frappe.db.get_value("Employee", employee, "employee_name")
+    context.today_str = today()
 
     # Semaine affichée (navigation par query param ?week=YYYY-MM-DD)
     week_param = frappe.form_dict.get("week")
-    week_start = getdate(week_param) if week_param else getdate(get_first_day_of_week(today()))
+    if week_param:
+        week_start = getdate(week_param)
+    else:
+        d = getdate(today())
+        week_start = d - _dt.timedelta(days=d.weekday())
     week_end = add_days(week_start, 6)
     context.week_start = week_start
     context.week_end = week_end

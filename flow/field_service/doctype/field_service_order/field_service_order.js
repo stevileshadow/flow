@@ -1,6 +1,29 @@
 // Copyright (c) 2026, stevileshadow and contributors
 // License: MIT
 
+// ================================================================== //
+//  Ligne pièces — calcul montant en temps réel                       //
+// ================================================================== //
+frappe.ui.form.on("Field Service Parts Line", {
+	qty(frm, cdt, cdn) {
+		_calc_parts_line_amount(frm, cdt, cdn);
+	},
+	rate(frm, cdt, cdn) {
+		_calc_parts_line_amount(frm, cdt, cdn);
+	},
+	part_type(frm, cdt, cdn) {
+		_calc_parts_line_amount(frm, cdt, cdn);
+	},
+});
+
+function _calc_parts_line_amount(frm, cdt, cdn) {
+	const row = locals[cdt][cdn];
+	if (row.part_type === "En location") return; // calculé côté serveur
+	const amount = flt(row.qty) * flt(row.rate);
+	frappe.model.set_value(cdt, cdn, "amount", amount);
+	frm.refresh_field("parts");
+}
+
 frappe.ui.form.on("Field Service Order", {
 
 	// ------------------------------------------------------------------ //
