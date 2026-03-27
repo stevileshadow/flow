@@ -2,6 +2,7 @@
 # License: MIT
 """Pointage géolocalisé — enregistré depuis le portail mobile technicien."""
 
+import math
 import frappe
 from frappe import _
 from frappe.model.document import Document
@@ -75,7 +76,6 @@ def _get_fso_location_coords(fso_name):
 
 def _haversine(lat1, lon1, lat2, lon2):
     """Distance en mètres entre deux coordonnées (formule Haversine)."""
-    import math
     R = 6_371_000  # rayon terrestre en mètres
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
