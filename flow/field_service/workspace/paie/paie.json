@@ -1,0 +1,70 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"hdr_sal\",\"type\":\"header\",\"data\":{\"text\":\"Salaires & Paie\",\"level\":4}},{\"id\":\"card_paie\",\"type\":\"card\",\"data\":{\"card_name\":\"Traitement de la paie\",\"col\":4}},{\"id\":\"card_struct\",\"type\":\"card\",\"data\":{\"card_name\":\"Structures salariales\",\"col\":4}},{\"id\":\"card_extra\",\"type\":\"card\",\"data\":{\"card_name\":\"Salaires additionnels\",\"col\":4}},{\"id\":\"hdr_ts\",\"type\":\"header\",\"data\":{\"text\":\"Temps & Heures\",\"level\":6}},{\"id\":\"card_ts\",\"type\":\"card\",\"data\":{\"card_name\":\"Feuilles de temps\",\"col\":6}},{\"id\":\"card_fsm\",\"type\":\"card\",\"data\":{\"card_name\":\"FSM Timesheets\",\"col\":6}}]",
+ "creation": "2026-03-28 00:00:00.000000",
+ "doctype": "Workspace",
+ "hide_custom": 0,
+ "icon": "money",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Paie",
+ "links": [
+  {"hidden": 0, "is_query_report": 0, "label": "Traitement de la paie",   "link_count": 0, "onboard": 0, "type": "Card Break"},
+  {"hidden": 0, "is_query_report": 0, "label": "Entrées de paie",         "link_to": "Payroll Entry",            "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Bulletins de salaire",    "link_to": "Salary Slip",              "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Période de paie",         "link_to": "Payroll Period",           "link_type": "DocType", "onboard": 0, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Structures salariales",   "link_count": 0, "onboard": 0, "type": "Card Break"},
+  {"hidden": 0, "is_query_report": 0, "label": "Structures salariales",   "link_to": "Salary Structure",         "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Affectations de structure","link_to": "Salary Structure Assignment","link_type": "DocType","onboard": 0, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Composantes salariales",  "link_to": "Salary Component",         "link_type": "DocType", "onboard": 0, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Salaires additionnels",   "link_count": 0, "onboard": 0, "type": "Card Break"},
+  {"hidden": 0, "is_query_report": 0, "label": "Salaires additionnels",   "link_to": "Additional Salary",        "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Retenues sur salaire",    "link_to": "Deduction Type",           "link_type": "DocType", "onboard": 0, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Avances sur salaire",     "link_to": "Employee Advance",         "link_type": "DocType", "onboard": 0, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Feuilles de temps",       "link_count": 0, "onboard": 0, "type": "Card Break"},
+  {"hidden": 0, "is_query_report": 0, "label": "Feuilles de temps ERP",   "link_to": "Timesheet",                "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "FSM Timesheets",          "link_count": 0, "onboard": 0, "type": "Card Break"},
+  {"hidden": 0, "is_query_report": 0, "label": "FS Feuilles de temps",    "link_to": "FSM Technician Timesheet", "link_type": "DocType", "onboard": 1, "type": "Link"},
+  {"hidden": 0, "is_query_report": 0, "label": "Décompte mensuel",        "link_to": "/my/decompte",             "link_type": "URL",     "onboard": 0, "type": "Link"}
+ ],
+ "modified": "2026-03-28 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Field Service",
+ "name": "paie",
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "roles": [
+  {"role": "Field Service Manager"},
+  {"role": "HR Manager"},
+  {"role": "Accounts Manager"},
+  {"role": "System Manager"}
+ ],
+ "sequence_id": 13,
+ "shortcuts": [
+  {
+   "color": "Green",
+   "format": "{} bulletins",
+   "label": "Bulletins du mois",
+   "link_to": "Salary Slip",
+   "stats_filter": "{\"docstatus\": 1}",
+   "type": "DocType"
+  },
+  {
+   "color": "Orange",
+   "format": "{} entrées",
+   "label": "Paie en cours",
+   "link_to": "Payroll Entry",
+   "stats_filter": "{\"docstatus\": 0}",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "format": "{} timesheets",
+   "label": "Timesheets FSM",
+   "link_to": "FSM Technician Timesheet",
+   "stats_filter": "{}",
+   "type": "DocType"
+  }
+ ]
+}
