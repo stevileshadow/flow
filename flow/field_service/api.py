@@ -326,7 +326,10 @@ def _collect_data(month, year):
 		t = tech_map.setdefault(emp, {
 			"employee": emp, "name": name,
 			"nb_orders": 0, "nb_completed": 0,
-			"terrain_hours": 0.0, "billable_hours": 0.0,
+			# Paie : heures réellement pointées (toutes lignes FSM TS, créées depuis GPS punches)
+			"punch_hours": 0.0,
+			# Facturation : heures facturables au client (lignes is_billable=1 uniquement)
+			"billable_hours": 0.0,
 			"labor_amount": 0.0, "mandats": set(),
 			# Sources additionnelles (remplies ci-dessous)
 			"internal_hours": 0.0,
@@ -338,21 +341,33 @@ def _collect_data(month, year):
 		t["nb_orders"] += 1
 		if o.status in ("Terminé", "Facturé"):
 			t["nb_completed"] += 1
-		t["terrain_hours"] += flt(o.total_hours)
 		t["labor_amount"] += flt(o.total_timesheet_amount)
 		if o.fsm_mandate:
 			t["mandats"].add(o.fsm_mandate)
 
-	# Heures facturables depuis les lignes FSM Timesheet
 	order_names = [o.name for o in orders]
 	if order_names:
-		ts_rows = frappe.db.sql("""
-			SELECT parent, employee, SUM(billing_hours) as bh, SUM(hours) as h
+		# Heures pointées (paie) — toutes les lignes FSM Timesheet, billable ou non
+		# Ces lignes sont créées automatiquement depuis les paires Arrivée/Départ GPS
+		all_ts_rows = frappe.db.sql("""
+			SELECT employee, SUM(hours) as h
+			FROM `tabField Service Timesheet Line`
+			WHERE parent IN %(names)s
+			GROUP BY employee
+		""", {"names": order_names}, as_dict=True)
+		for row in all_ts_rows:
+			emp = row.employee or "_sans"
+			if emp in tech_map:
+				tech_map[emp]["punch_hours"] += flt(row.h)
+
+		# Heures facturables client — lignes is_billable=1 uniquement
+		billable_rows = frappe.db.sql("""
+			SELECT employee, SUM(billing_hours) as bh, SUM(hours) as h
 			FROM `tabField Service Timesheet Line`
 			WHERE parent IN %(names)s AND is_billable=1
-			GROUP BY parent, employee
+			GROUP BY employee
 		""", {"names": order_names}, as_dict=True)
-		for row in ts_rows:
+		for row in billable_rows:
 			emp = row.employee or "_sans"
 			if emp in tech_map:
 				tech_map[emp]["billable_hours"] += flt(row.bh or row.h)
@@ -434,14 +449,15 @@ def _collect_data(month, year):
 	# ── Consolidation paie par employé ───────────────────────────────────
 	for emp, t in tech_map.items():
 		t["mandats"] = len(t["mandats"])
-		t["total_hours"] = t["terrain_hours"]  # compatibilité affichage
-		t.setdefault("billable_hours", t["terrain_hours"])
-		# Heures payables = terrain + internes - congés (déjà payés séparément)
+		# total_hours = heures pointées (base paie), fallback billable pour onglet opérationnel
+		t["total_hours"] = t["punch_hours"] or t["billable_hours"]
+		# Heures payables = pointage GPS + internes - congés
+		# Séparation claire : punch_hours (paie) ≠ billable_hours (facturation client)
 		t["total_payable_hours"] = max(
 			0.0,
-			t["terrain_hours"] + t["internal_hours"] - t["leave_hours"]
+			t["punch_hours"] + t["internal_hours"] - t["leave_hours"]
 		)
-		# Estimation salaire : heures × taux + primes
+		# Estimation salaire : heures payables × taux + primes
 		rate = hourly_rates.get(emp, 0.0)
 		t["estimated_pay"] = flt(t["total_payable_hours"] * rate) + t["additional_salary"]
 		t["hourly_rate"] = rate
@@ -496,6 +512,8 @@ def _collect_data(month, year):
 		"nb_clients": len(client_map),
 		"nb_mandats": len(mandate_names),
 		# Consolidation paie globale
+		"total_punch_hours": sum(t["punch_hours"] for t in tech_map.values()),
+		"total_billable_hours": sum(t["billable_hours"] for t in tech_map.values()),
 		"total_payable_hours": sum(t["total_payable_hours"] for t in tech_map.values()),
 		"total_estimated_pay": sum(t["estimated_pay"] for t in tech_map.values()),
 		"total_additional_salary": sum(t["additional_salary"] for t in tech_map.values()),

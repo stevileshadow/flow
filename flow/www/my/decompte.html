@@ -53,7 +53,7 @@
       ("Interventions", s.nb_orders, "secondary", "🔧"),
       ("Terminées", s.nb_completed, "success", "✓"),
       ("Facturées", s.nb_invoiced, "info", "🧾"),
-      ("H. Terrain", s.total_hours|round(1), "warning", "⏱"),
+      ("H. Pointées", s.total_punch_hours|round(1), "warning", "⏱"),
       ("H. Payables", s.total_payable_hours|round(1), "primary", "📋"),
       ("Paie est. (€)", s.total_estimated_pay|round(0), "success", "💶"),
       ("CA (€)", s.total_revenue|round(2), "info", "💰"),
@@ -144,28 +144,32 @@
     {# ── Onglet Paie consolidée ── #}
     <div class="tab-pane fade" id="tab-paie">
       <div class="alert alert-info py-2 mb-3" style="font-size:.85rem;">
-        <strong>Sources consolidées :</strong>
-        heures terrain (FSO) + heures internes (ERPNext TS) − congés approuvés + primes/HS
+        <strong>Séparation Paie / Facturation :</strong>
+        H. Pointées = GPS Arrivée→Départ (base paie) &nbsp;|&nbsp;
+        H. Facturables = heures billables au client (base facturation) &nbsp;|&nbsp;
+        H. Payables = Pointées + Internes − Congés
       </div>
       <div class="table-responsive">
         <table class="table table-sm table-hover align-middle">
           <thead class="table-dark">
             <tr>
               <th>Employé</th>
-              <th class="text-end">H. Terrain</th>
+              <th class="text-end">H. Pointées <small class="fw-normal">(paie)</small></th>
+              <th class="text-end">H. Facturables <small class="fw-normal">(client)</small></th>
               <th class="text-end">H. Internes</th>
               <th class="text-end">H. Congés</th>
               <th class="text-end">H. Payables</th>
-              <th class="text-end">Taux horaire</th>
+              <th class="text-end">Taux (€/h)</th>
               <th class="text-end">Primes (€)</th>
-              <th class="text-end fw-bold">Paie estimée (€)</th>
+              <th class="text-end fw-bold">Paie est. (€)</th>
             </tr>
           </thead>
           <tbody>
             {% for t in data.technicians %}
             <tr class="{{ 'table-warning' if t.total_payable_hours > 160 else '' }}">
               <td>{{ t.name }}</td>
-              <td class="text-end">{{ "%.1f"|format(t.terrain_hours or 0) }}</td>
+              <td class="text-end fw-bold">{{ "%.1f"|format(t.punch_hours or 0) }}</td>
+              <td class="text-end text-muted">{{ "%.1f"|format(t.billable_hours or 0) }}</td>
               <td class="text-end text-muted">{{ "%.1f"|format(t.internal_hours or 0) }}</td>
               <td class="text-end text-danger">{{ "%.1f"|format(t.leave_hours or 0) }}</td>
               <td class="text-end fw-bold">{{ "%.1f"|format(t.total_payable_hours or 0) }}</td>
@@ -174,13 +178,14 @@
               <td class="text-end fw-bold text-success">{{ "%.2f"|format(t.estimated_pay or 0) }}</td>
             </tr>
             {% else %}
-            <tr><td colspan="8" class="text-center text-muted">Aucun technicien ce mois-ci.</td></tr>
+            <tr><td colspan="9" class="text-center text-muted">Aucun technicien ce mois-ci.</td></tr>
             {% endfor %}
           </tbody>
           <tfoot class="table-secondary fw-bold">
             <tr>
               <td>Total</td>
-              <td class="text-end">{{ "%.1f"|format(s.total_hours) }}</td>
+              <td class="text-end">{{ "%.1f"|format(s.total_punch_hours or 0) }}</td>
+              <td class="text-end">{{ "%.1f"|format(s.total_billable_hours or 0) }}</td>
               <td class="text-end">{{ "%.1f"|format(s.total_internal_hours or 0) }}</td>
               <td class="text-end text-danger">{{ "%.1f"|format(s.total_leave_hours or 0) }}</td>
               <td class="text-end">{{ "%.1f"|format(s.total_payable_hours or 0) }}</td>
