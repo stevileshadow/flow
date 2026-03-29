@@ -124,10 +124,10 @@ doc_events = {
 # ------------------------------------------------------------------ #
 
 fixtures = [
-	# Workspaces (sidebar FSM — Services sur Site, RH, Paie)
+	# Workspaces (sidebar FSM)
 	{
 		"doctype": "Workspace",
-		"filters": [["name", "in", ["services-sur-site", "rh", "paie"]]],
+		"filters": [["name", "in", ["services-sur-site", "rh-terrain", "paie-fsm"]]],
 	},
 	# Données métier FSM
 	{"doctype": "Field Service Activity Type", "filters": []},
