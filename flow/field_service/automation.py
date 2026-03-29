@@ -58,6 +58,7 @@ def on_fso_update(doc, method=None):
         _auto_create_labor_je(doc)
         _auto_create_invoice(doc)
         _auto_update_equipment_after_close(doc)
+        _auto_create_overtime_salary(doc)
 
     # ── À la planification : vérification stock ───────────────────────────
     if doc.status == "Planifié" and old_status in ("Nouveau", "Brouillon"):
@@ -488,6 +489,76 @@ def auto_close_stale_orders():
     if closed:
         frappe.db.commit()
         frappe.logger().info(f"[Automation] {closed} FSO(s) fermé(s) automatiquement (inactivité)")
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Bridge FSM → Paie : Additional Salary pour heures supplémentaires
+# ════════════════════════════════════════════════════════════════════════════
+
+def _auto_create_overtime_salary(fso):
+    """
+    Après clôture du FSO : si les heures réelles dépassent les heures
+    contractuelles de la journée (configurable dans FSM Settings →
+    standard_daily_hours, défaut 8h), crée un Additional Salary ERPNext
+    pour les heures supplémentaires du technicien.
+
+    Architecture inspirée Odoo/D365 : FSM hours → payroll pipeline.
+    Idempotent : vérifie l'absence d'un Additional Salary pour ce FSO.
+    """
+    s = _s()
+    if not getattr(s, "auto_create_overtime_salary", 0):
+        return
+    if not fso.assigned_to or not fso.total_hours:
+        return
+    if flt(fso.total_hours) <= 0:
+        return
+
+    standard_daily_h = flt(getattr(s, "standard_daily_hours", 8) or 8)
+    overtime_h = flt(fso.total_hours) - standard_daily_h
+    if overtime_h <= 0:
+        return
+
+    # Vérifier si un Additional Salary existe déjà pour ce FSO
+    existing = frappe.db.exists(
+        "Additional Salary",
+        {"ref_docname": fso.name, "employee": fso.assigned_to, "docstatus": ["!=", 2]},
+    )
+    if existing:
+        return
+
+    # Taux des heures supplémentaires (1.5× le taux horaire par défaut)
+    base_rate = flt(frappe.db.get_value("Employee", fso.assigned_to, "hour_rate") or 0)
+    overtime_rate = base_rate * flt(getattr(s, "overtime_multiplier", 1.5) or 1.5)
+    overtime_amount = flt(overtime_h * overtime_rate, 2)
+
+    if overtime_amount <= 0:
+        return
+
+    salary_component = getattr(s, "overtime_salary_component", None) or "Overtime"
+    company = fso.company or frappe.defaults.get_global_default("company")
+    payroll_date = getdate(fso.actual_end) if fso.actual_end else getdate(today())
+
+    try:
+        add_sal = frappe.new_doc("Additional Salary")
+        add_sal.employee = fso.assigned_to
+        add_sal.salary_component = salary_component
+        add_sal.amount = overtime_amount
+        add_sal.payroll_date = payroll_date
+        add_sal.company = company
+        add_sal.ref_doctype = "Field Service Order"
+        add_sal.ref_docname = fso.name
+        add_sal.notes = _(
+            "Heures supplémentaires FSO {0} — {1}h au-delà de {2}h standard"
+        ).format(fso.name, round(overtime_h, 2), int(standard_daily_h))
+        add_sal.insert(ignore_permissions=True)
+        frappe.logger().info(
+            f"[Automation] Additional Salary {add_sal.name} créé pour {fso.assigned_to} "
+            f"({round(overtime_h, 2)}h sup — {fso.name})"
+        )
+    except Exception:
+        frappe.log_error(
+            frappe.get_traceback(), f"Automation: overtime_salary — {fso.name}"
+        )
 
 
 def auto_generate_mandate_invoices():

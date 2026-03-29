@@ -483,7 +483,11 @@ def record_geo_punch(fso_name, punch_type, latitude=None, longitude=None,
 
 
 def _update_fso_times_from_punch(fso_name, punch_type, punch_time):
-    """Met à jour actual_start / actual_end du FSO selon le type de pointage."""
+    """
+    Met à jour actual_start / actual_end du FSO selon le type de pointage.
+    À la fermeture (Départ), crée automatiquement une ligne FSM Timesheet
+    depuis la paire Arrivée→Départ, comme Odoo Field Service le fait.
+    """
     updates = {}
     if punch_type == "Arrivée":
         existing = frappe.db.get_value("Field Service Order", fso_name, "actual_start")
@@ -492,8 +496,73 @@ def _update_fso_times_from_punch(fso_name, punch_type, punch_time):
             updates["status"] = "En cours"
     elif punch_type == "Départ":
         updates["actual_end"] = punch_time
+        # Crée automatiquement la ligne timesheet depuis la paire Arrivée→Départ
+        _create_timesheet_from_punches(fso_name, punch_time)
     if updates:
         frappe.db.set_value("Field Service Order", fso_name, updates)
+
+
+def _create_timesheet_from_punches(fso_name, departure_time):
+    """
+    Crée une ligne dans le FSO Timesheet inline depuis les pointages GPS.
+    Source : punch Arrivée le plus récent pour ce FSO/employé + ce Départ.
+    Idempotent : ne crée pas si une ligne GPS existe déjà pour la même heure.
+    """
+    try:
+        employee = _get_current_employee()
+        if not employee:
+            return
+
+        # Chercher l'Arrivée la plus récente pour ce FSO + cet employé
+        arrival_rec = frappe.db.get_value(
+            "FSM Geolocation Punch",
+            {
+                "field_service_order": fso_name,
+                "employee": employee,
+                "punch_type": "Arrivée",
+            },
+            ["punch_time"],
+            order_by="punch_time desc",
+        )
+        if not arrival_rec:
+            return
+
+        arrival_time = arrival_rec
+        # Calculer les heures écoulées
+        from frappe.utils import time_diff_in_hours, get_datetime
+        hours = flt(time_diff_in_hours(departure_time, arrival_time), 2)
+        if hours <= 0:
+            return
+
+        fso = frappe.get_doc("Field Service Order", fso_name)
+        emp_name = frappe.db.get_value("Employee", employee, "employee_name") or employee
+
+        # Vérifier si une ligne existe déjà pour cette plage horaire
+        for row in (fso.timesheets or []):
+            if str(row.from_time) == str(arrival_time) and row.employee == employee:
+                return  # déjà présente, idempotent
+
+        # Taux horaire depuis contrat
+        hourly_rate = flt(frappe.db.get_value("Employee", employee, "hour_rate") or 0)
+
+        fso.append("timesheets", {
+            "employee": employee,
+            "employee_name": emp_name,
+            "from_time": get_datetime(arrival_time),
+            "to_time": get_datetime(departure_time),
+            "hours": hours,
+            "is_billable": 1,
+            "billing_hours": hours,
+            "hourly_rate": hourly_rate,
+            "billing_amount": flt(hours * hourly_rate, 2),
+            "activity_type": frappe.db.get_value(
+                "Field Service Order", fso_name, "activity_type"
+            ) or "Exécution",
+            "notes": _("Créé automatiquement depuis pointage GPS"),
+        })
+        fso.save(ignore_permissions=True)
+    except Exception:
+        frappe.log_error(frappe.get_traceback(), f"HR Engine: GPS→Timesheet — {fso_name}")
 
 
 # ════════════════════════════════════════════════════════════════════════════

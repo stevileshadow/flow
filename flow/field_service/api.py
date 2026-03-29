@@ -281,15 +281,29 @@ def download_monthly_decompte(month, year):
 # ─── Collecte des données ──────────────────────────────────────────────────────
 
 def _collect_data(month, year):
+	"""
+	Collecte consolidée Odoo-style : toutes les sources d'heures employé
+	(terrain FSM + internes ERPNext + congés + primes) sont agrégées
+	pour produire un décompte de paie réel par employé.
+
+	Architecture (inspirée D365 / Odoo) :
+	  GPS Punch → FSM Timesheet → ERPNext Timesheet   (heures terrain)
+	  ERPNext Timesheet (sans FSO)                     (heures internes)
+	  Leave Application                                (absences)
+	  Additional Salary                                (primes/commissions)
+	  ─────────────────────────────────────────────────────────────────
+	  → total_payable_hours, estimated_pay par employé
+	"""
 	import datetime
+	import calendar as _cal
 	start = datetime.date(year, month, 1)
-	import calendar
-	_, last_day = calendar.monthrange(year, month)
+	_, last_day = _cal.monthrange(year, month)
 	end = datetime.date(year, month, last_day)
+	start_str, end_str = str(start), str(end)
 
 	orders = frappe.get_all(
 		"Field Service Order",
-		filters={"scheduled_date": ["between", [str(start), str(end)]], "docstatus": ["!=", 2]},
+		filters={"scheduled_date": ["between", [start_str, end_str]], "docstatus": ["!=", 2]},
 		fields=[
 			"name", "title", "status", "priority", "billing_type",
 			"customer", "customer_name",
@@ -303,7 +317,7 @@ def _collect_data(month, year):
 		order_by="scheduled_date asc",
 	)
 
-	# ── Techniciens ──────────────────────────────────────────────────────
+	# ── Techniciens — heures terrain FSM ────────────────────────────────
 	tech_map = {}
 	for o in orders:
 		emp = o.assigned_to or "_sans"
@@ -311,17 +325,24 @@ def _collect_data(month, year):
 		t = tech_map.setdefault(emp, {
 			"employee": emp, "name": name,
 			"nb_orders": 0, "nb_completed": 0,
-			"total_hours": 0.0, "labor_amount": 0.0, "mandats": set(),
+			"terrain_hours": 0.0, "billable_hours": 0.0,
+			"labor_amount": 0.0, "mandats": set(),
+			# Sources additionnelles (remplies ci-dessous)
+			"internal_hours": 0.0,
+			"leave_hours": 0.0,
+			"additional_salary": 0.0,
+			"total_payable_hours": 0.0,
+			"estimated_pay": 0.0,
 		})
 		t["nb_orders"] += 1
 		if o.status in ("Terminé", "Facturé"):
 			t["nb_completed"] += 1
-		t["total_hours"] += flt(o.total_hours)
+		t["terrain_hours"] += flt(o.total_hours)
 		t["labor_amount"] += flt(o.total_timesheet_amount)
 		if o.fsm_mandate:
 			t["mandats"].add(o.fsm_mandate)
 
-	# Heures facturables par technicien depuis les lignes timesheet
+	# Heures facturables depuis les lignes FSM Timesheet
 	order_names = [o.name for o in orders]
 	if order_names:
 		ts_rows = frappe.db.sql("""
@@ -333,11 +354,96 @@ def _collect_data(month, year):
 		for row in ts_rows:
 			emp = row.employee or "_sans"
 			if emp in tech_map:
-				tech_map[emp]["billable_hours"] = tech_map[emp].get("billable_hours", 0.0) + flt(row.bh or row.h)
+				tech_map[emp]["billable_hours"] += flt(row.bh or row.h)
 
-	for t in tech_map.values():
+	# ── Source 2 : Heures internes ERPNext Timesheet (non-FSO) ──────────
+	try:
+		erp_ts = frappe.db.sql("""
+			SELECT tsd.employee, SUM(tsd.hours) as h
+			FROM `tabTimesheet Detail` tsd
+			JOIN `tabTimesheet` ts ON ts.name = tsd.parent
+			WHERE ts.start_date >= %(start)s
+			  AND ts.end_date   <= %(end)s
+			  AND ts.docstatus  != 2
+			  AND (tsd.project IS NULL OR tsd.project = '')
+			GROUP BY tsd.employee
+		""", {"start": start_str, "end": end_str}, as_dict=True)
+		for row in erp_ts:
+			emp = row.employee or "_sans"
+			if emp in tech_map:
+				tech_map[emp]["internal_hours"] += flt(row.h)
+	except Exception:
+		frappe.log_error(frappe.get_traceback(), "Decompte: ERPNext Timesheet query")
+
+	# ── Source 3 : Congés ERPNext (Leave Application approuvées) ────────
+	all_employees = [e for e in tech_map if e != "_sans"]
+	if all_employees:
+		try:
+			leaves = frappe.db.sql("""
+				SELECT employee, SUM(total_leave_days) as days
+				FROM `tabLeave Application`
+				WHERE employee IN %(emps)s
+				  AND from_date <= %(end)s
+				  AND to_date   >= %(start)s
+				  AND status    = 'Approved'
+				  AND docstatus = 1
+				GROUP BY employee
+			""", {"emps": all_employees, "start": start_str, "end": end_str}, as_dict=True)
+			for row in leaves:
+				emp = row.employee
+				if emp in tech_map:
+					# 1 jour congé = 8 h
+					tech_map[emp]["leave_hours"] += flt(row.days) * 8.0
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Decompte: Leave Application query")
+
+	# ── Source 4 : Primes / Additional Salary ────────────────────────────
+	if all_employees:
+		try:
+			bonuses = frappe.db.sql("""
+				SELECT employee, SUM(amount) as total
+				FROM `tabAdditional Salary`
+				WHERE employee IN %(emps)s
+				  AND payroll_date >= %(start)s
+				  AND payroll_date <= %(end)s
+				  AND docstatus != 2
+				GROUP BY employee
+			""", {"emps": all_employees, "start": start_str, "end": end_str}, as_dict=True)
+			for row in bonuses:
+				emp = row.employee
+				if emp in tech_map:
+					tech_map[emp]["additional_salary"] += flt(row.total)
+		except Exception:
+			frappe.log_error(frappe.get_traceback(), "Decompte: Additional Salary query")
+
+	# ── Source 5 : Taux horaire depuis contrat employé ──────────────────
+	hourly_rates = {}
+	if all_employees:
+		try:
+			contracts = frappe.db.sql("""
+				SELECT employee, hour_rate
+				FROM `tabEmployee`
+				WHERE name IN %(emps)s AND hour_rate IS NOT NULL AND hour_rate > 0
+			""", {"emps": all_employees}, as_dict=True)
+			for c in contracts:
+				hourly_rates[c.employee] = flt(c.hour_rate)
+		except Exception:
+			pass
+
+	# ── Consolidation paie par employé ───────────────────────────────────
+	for emp, t in tech_map.items():
 		t["mandats"] = len(t["mandats"])
-		t.setdefault("billable_hours", t["total_hours"])
+		t["total_hours"] = t["terrain_hours"]  # compatibilité affichage
+		t.setdefault("billable_hours", t["terrain_hours"])
+		# Heures payables = terrain + internes - congés (déjà payés séparément)
+		t["total_payable_hours"] = max(
+			0.0,
+			t["terrain_hours"] + t["internal_hours"] - t["leave_hours"]
+		)
+		# Estimation salaire : heures × taux + primes
+		rate = hourly_rates.get(emp, 0.0)
+		t["estimated_pay"] = flt(t["total_payable_hours"] * rate) + t["additional_salary"]
+		t["hourly_rate"] = rate
 
 	# ── Clients ──────────────────────────────────────────────────────────
 	client_map = {}
@@ -388,6 +494,12 @@ def _collect_data(month, year):
 		"nb_technicians": len(tech_map),
 		"nb_clients": len(client_map),
 		"nb_mandats": len(mandate_names),
+		# Consolidation paie globale
+		"total_payable_hours": sum(t["total_payable_hours"] for t in tech_map.values()),
+		"total_estimated_pay": sum(t["estimated_pay"] for t in tech_map.values()),
+		"total_additional_salary": sum(t["additional_salary"] for t in tech_map.values()),
+		"total_leave_hours": sum(t["leave_hours"] for t in tech_map.values()),
+		"total_internal_hours": sum(t["internal_hours"] for t in tech_map.values()),
 	}
 
 	return {
