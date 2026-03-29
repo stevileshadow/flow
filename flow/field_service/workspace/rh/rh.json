@@ -8,6 +8,7 @@
  "idx": 0,
  "is_hidden": 0,
  "label": "RH Terrain",
+ "title": "RH Terrain",
  "links": [
   {"hidden": 0, "is_query_report": 0, "label": "Disponibilités & Planning",   "link_count": 0, "onboard": 0, "type": "Card Break"},
   {"hidden": 0, "is_query_report": 0, "label": "Disponibilités techniciens",  "link_to": "FSM Technician Availability", "link_type": "DocType", "onboard": 1, "type": "Link"},

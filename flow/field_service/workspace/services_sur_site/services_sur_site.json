@@ -13,6 +13,7 @@
  "idx": 0,
  "is_hidden": 0,
  "label": "Services sur Site",
+ "title": "Services sur Site",
  "links": [
   {"hidden": 0, "is_query_report": 0, "label": "Opérations FSM",            "link_count": 0, "onboard": 0, "type": "Card Break"},
   {"hidden": 0, "is_query_report": 0, "label": "Ordres d'intervention",     "link_to": "Field Service Order",          "link_type": "DocType", "onboard": 1, "type": "Link"},
