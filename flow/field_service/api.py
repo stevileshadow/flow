@@ -146,6 +146,7 @@ def create_erp_timesheets(order_name):
 				"billing_rate": flt(line.hourly_rate),
 				"project": project_name,
 				"task": fso.erp_task or None,
+				"is_break": 1 if getattr(line, "is_break", 0) else 0,
 			})
 		if not ts.time_logs:
 			continue

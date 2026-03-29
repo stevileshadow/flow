@@ -429,13 +429,15 @@ def _auto_create_erp_project(mandate):
 def sync_pending_erp_timesheets():
     """
     Batch nocturne — crée les Timesheets ERPNext manquantes pour tous les
-    FSO clôturés depuis moins de 7 jours sans timesheet ERPNext.
+    FSO clôturés sans timesheet ERPNext.
+    Délai configurable : FSM Settings → timesheet_sync_days (défaut 30).
     Rattrape les échecs éventuels du déclenchement temps-réel.
     """
     if not getattr(_s(), "auto_create_erp_timesheet", 1):
         return
 
-    cutoff = add_days(today(), -7)
+    sync_days = int(getattr(_s(), "timesheet_sync_days", 30) or 30)
+    cutoff = add_days(today(), -sync_days)
     pending = frappe.get_all(
         "Field Service Order",
         filters={
