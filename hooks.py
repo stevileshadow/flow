@@ -7,6 +7,9 @@ app_color = "blue"
 app_email = "ton-courriel@exemple.com"
 app_license = "mit"
 
+# Modules déclarés explicitement (requis pour bench migrate / sync_for)
+modules = ["Field Service"]
+
 # Pages web servies depuis flow/www/
 # Frappe détecte automatiquement le dossier www de chaque app installée
 
