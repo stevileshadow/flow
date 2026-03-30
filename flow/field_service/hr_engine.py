@@ -521,7 +521,7 @@ def _create_timesheet_from_punches(fso_name, departure_time):
                 "employee": employee,
                 "punch_type": "Arrivée",
             },
-            ["punch_time"],
+            "punch_time",
             order_by="punch_time desc",
         )
         if not arrival_rec:
