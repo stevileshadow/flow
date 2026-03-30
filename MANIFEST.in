@@ -1,0 +1,2 @@
+include requirements.txt
+recursive-include flow *.json *.js *.css *.html *.csv *.txt *.md *.svg *.png
