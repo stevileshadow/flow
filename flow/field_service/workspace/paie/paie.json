@@ -32,7 +32,7 @@
  ],
  "sequence_id": 1.5,
  "shortcuts": [
-  {"color": "Blue",  "format": "{} timesheets", "label": "Timesheets FSM",   "link_to": "FSM Technician Timesheet", "stats_filter": "{}", "type": "DocType"},
+  {"color": "Blue",  "format": "{} feuilles de temps", "label": "Feuilles de temps FSM",   "link_to": "FSM Technician Timesheet", "stats_filter": "{}", "type": "DocType"},
   {"color": "Green", "label": "Décompte mensuel", "url": "/my/decompte", "type": "URL"}
  ]
 }

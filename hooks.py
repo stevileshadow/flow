@@ -1,11 +1,14 @@
 app_name = "flow"
-app_title = "Flow"
+app_title = "Flow FSM"
 app_publisher = "stevileshadow"
-app_description = "ERP open source concurrent d'Odoo, bâti sur Frappe"
-app_icon = "octicon octicon-zap"
-app_color = "blue"
+app_description = "Gestion des services de terrain — Field Service Management"
+app_icon = "octicon octicon-tools"
+app_color = "#1B4FD8"
 app_email = "ton-courriel@exemple.com"
 app_license = "mit"
+
+# Langue par défaut du système
+default_language = "fr"
 
 # Modules déclarés explicitement (requis pour bench migrate / sync_for)
 modules = ["Field Service"]
